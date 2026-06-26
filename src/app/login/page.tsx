@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,10 +28,19 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await authClient.signIn.email({ email, password });
+    const isEmail = identifier.includes("@");
+    let err;
 
-    if (error) {
-      setError("E-Mail oder Passwort falsch.");
+    if (isEmail) {
+      const result = await authClient.signIn.email({ email: identifier, password });
+      err = result.error;
+    } else {
+      const result = await authClient.signIn.username({ username: identifier, password });
+      err = result.error;
+    }
+
+    if (err) {
+      setError("Benutzername/E-Mail oder Passwort falsch.");
       setLoading(false);
       return;
     }
@@ -59,15 +68,16 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="form-control">
               <label className="label">
-                <span className="label-text text-base">E-Mail</span>
+                <span className="label-text text-base">Benutzername oder E-Mail</span>
               </label>
               <input
-                type="email"
+                type="text"
                 className="input input-bordered text-base"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
+                autoCapitalize="none"
               />
             </div>
 

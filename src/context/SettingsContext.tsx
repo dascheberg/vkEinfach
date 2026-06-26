@@ -8,6 +8,7 @@ const defaultSettings: AppSettings = {
   clubName: "Mein Verein",
   clubSubtitle: "Vereinskasse",
   receiptDefaultPath: "",
+  setupComplete: true,
   internalAccountRange: { min: 100, max: 999 },
   features: {
     members: true,

@@ -30,6 +30,7 @@ interface Props {
   defaultIntId: string;
   defaultDir: string;
   defaultBn: string;
+  defaultAmount: string;
 }
 
 export default function TransactionFilters({
@@ -41,21 +42,24 @@ export default function TransactionFilters({
   defaultIntId,
   defaultDir,
   defaultBn,
+  defaultAmount,
 }: Props) {
   const router = useRouter();
-  const [fyId,  setFyId]  = useState(defaultFyId);
-  const [extId, setExtId] = useState(defaultExtId);
-  const [intId, setIntId] = useState(defaultIntId);
-  const [dir,   setDir]   = useState(defaultDir);
-  const [bn,    setBn]    = useState(defaultBn);
+  const [fyId,   setFyId]   = useState(defaultFyId);
+  const [extId,  setExtId]  = useState(defaultExtId);
+  const [intId,  setIntId]  = useState(defaultIntId);
+  const [dir,    setDir]    = useState(defaultDir);
+  const [bn,     setBn]     = useState(defaultBn);
+  const [amount, setAmount] = useState(defaultAmount);
 
-  function navigate(newFyId: string, newExtId: string, newIntId: string, newDir: string, newBn: string) {
+  function navigate(newFyId: string, newExtId: string, newIntId: string, newDir: string, newBn: string, newAmount: string) {
     const p = new URLSearchParams();
-    if (newFyId)  p.set("fyId",  newFyId);
-    if (newExtId) p.set("extId", newExtId);
-    if (newIntId) p.set("intId", newIntId);
-    if (newDir)   p.set("dir",   newDir);
-    if (newBn)    p.set("bn",    newBn);
+    if (newFyId)   p.set("fyId",   newFyId);
+    if (newExtId)  p.set("extId",  newExtId);
+    if (newIntId)  p.set("intId",  newIntId);
+    if (newDir)    p.set("dir",    newDir);
+    if (newBn)     p.set("bn",     newBn);
+    if (newAmount) p.set("amount", newAmount);
     router.push(`/transactions?${p.toString()}`);
   }
 
@@ -65,7 +69,7 @@ export default function TransactionFilters({
         aria-label="Buchungsjahr"
         className="select select-bordered text-base"
         value={fyId}
-        onChange={(e) => { setFyId(e.target.value); navigate(e.target.value, extId, intId, dir, bn); }}
+        onChange={(e) => { setFyId(e.target.value); navigate(e.target.value, extId, intId, dir, bn, amount); }}
       >
         <option value="">Alle Jahre</option>
         {fiscalYears.map((fy) => (
@@ -79,7 +83,7 @@ export default function TransactionFilters({
         aria-label="Externes Konto"
         className="select select-bordered text-base"
         value={extId}
-        onChange={(e) => { setExtId(e.target.value); navigate(fyId, e.target.value, intId, dir, bn); }}
+        onChange={(e) => { setExtId(e.target.value); navigate(fyId, e.target.value, intId, dir, bn, amount); }}
       >
         <option value="">Alle ext. Konten</option>
         {externalAccounts.map((a) => (
@@ -91,7 +95,7 @@ export default function TransactionFilters({
         aria-label="Internes Konto"
         className="select select-bordered text-base"
         value={intId}
-        onChange={(e) => { setIntId(e.target.value); navigate(fyId, extId, e.target.value, dir, bn); }}
+        onChange={(e) => { setIntId(e.target.value); navigate(fyId, extId, e.target.value, dir, bn, amount); }}
       >
         <option value="">Alle int. Konten</option>
         {internalAccounts.map((a) => (
@@ -103,7 +107,7 @@ export default function TransactionFilters({
         aria-label="Richtung"
         className="select select-bordered text-base"
         value={dir}
-        onChange={(e) => { setDir(e.target.value); navigate(fyId, extId, intId, e.target.value, bn); }}
+        onChange={(e) => { setDir(e.target.value); navigate(fyId, extId, intId, e.target.value, bn, amount); }}
       >
         <option value="">Ein- und Ausgaben</option>
         <option value="in">Nur Einnahmen</option>
@@ -117,8 +121,19 @@ export default function TransactionFilters({
         placeholder="BN suchen…"
         value={bn}
         onChange={(e) => setBn(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") navigate(fyId, extId, intId, dir, bn); }}
-        onBlur={() => { if (bn !== defaultBn) navigate(fyId, extId, intId, dir, bn); }}
+        onKeyDown={(e) => { if (e.key === "Enter") navigate(fyId, extId, intId, dir, bn, amount); }}
+        onBlur={() => { if (bn !== defaultBn) navigate(fyId, extId, intId, dir, bn, amount); }}
+      />
+
+      <input
+        type="text"
+        aria-label="Betrag suchen"
+        className="input input-bordered text-base font-mono w-36"
+        placeholder="Betrag…"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") navigate(fyId, extId, intId, dir, bn, amount); }}
+        onBlur={() => { if (amount !== defaultAmount) navigate(fyId, extId, intId, dir, bn, amount); }}
       />
     </div>
   );

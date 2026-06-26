@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { internalAccounts } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { DEFAULT_INTERNAL_ACCOUNTS } from "@/lib/data/internalAccountsDefault";
+import { accountsSeniorenclub as DEFAULT_INTERNAL_ACCOUNTS } from "@/lib/data/internalAccountsDefault";
 
 export const dynamic = "force-dynamic";
 

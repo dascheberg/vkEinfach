@@ -9,5 +9,6 @@ export async function getServerSession() {
 export async function requireAuth() {
   const session = await getServerSession();
   if (!session) redirect("/login");
+  if ((session.user as { banned?: boolean }).banned) redirect("/login");
   return session;
 }

@@ -36,8 +36,10 @@ export default function Navigation({ userName, userRole }: Props) {
     { href: "/fiscal-years",  label: "Buchungsjahre",     show: settings.features.transactions },
     { href: "/receipts",      label: "Belege",            show: settings.features.receipts },
     { href: "/travel",        label: "Reisen",            show: settings.features.travel },
+    { href: "/travel/surveys", label: "Umfragen",          show: settings.features.travel },
     { href: "/reports",       label: "Auswertungen",      show: settings.features.reports },
     { href: "/settings",      label: "Einstellungen",     show: true },
+    { href: "/users",         label: "Benutzer",          show: userRole === "admin" },
   ];
 
   return (
@@ -59,7 +61,9 @@ export default function Navigation({ userName, userRole }: Props) {
                   className={
                     item.href === "/dashboard"
                       ? pathname === "/dashboard" ? "active" : ""
-                      : pathname.startsWith(item.href) ? "active" : ""
+                      : item.href === "/travel"
+                        ? pathname.startsWith("/travel") && !pathname.startsWith("/travel/surveys") ? "active" : ""
+                        : pathname.startsWith(item.href) ? "active" : ""
                   }
                 >
                   {item.label}

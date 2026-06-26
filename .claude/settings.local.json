@@ -2,10 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(mkdir -p \"z:/home/diete/dev/vkEinfach/src/app/api/fiscal-years/[id]/carry-over\")"
+      "Bash(mkdir -p \"z:/home/diete/dev/vkEinfach/src/app/api/fiscal-years/[id]/carry-over\")",
+      "Bash(mkdir -p /home/diete/dev/vkEinfach/src/app/api/guests/\\\\[id\\\\] /home/diete/dev/vkEinfach/src/app/\\\\\\(protected\\\\\\)/guests /home/diete/dev/vkEinfach/src/modules/guests/components)"
     ],
     "additionalDirectories": [
-      "z:\\home\\diete\\dev\\vkEinfach\\src\\app\\api\\fiscal-years\\[id]"
+      "z:\\home\\diete\\dev\\vkEinfach\\src\\app\\api\\fiscal-years\\[id]",
+      "/home/diete/dev/vkEinfach/src/app/api/guests"
     ]
   }
 }

@@ -34,8 +34,8 @@ export default function ReportsCharts({ monthlyData }: { monthlyData: MonthlyDat
           width={85}
         />
         <Tooltip
-          formatter={(value: number) => fmtEur(value)}
-          labelFormatter={(label: string) => `Monat: ${label}`}
+          formatter={(value) => fmtEur(Number(value))}
+          labelFormatter={(label) => `Monat: ${label}`}
         />
         <Legend wrapperStyle={{ fontSize: 14 }} />
         <Bar dataKey="income"  name="Einnahmen" fill="#36d399" radius={[3, 3, 0, 0]} />

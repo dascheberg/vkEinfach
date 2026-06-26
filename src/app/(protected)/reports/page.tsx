@@ -4,6 +4,7 @@ import { transactions, externalAccounts, internalAccounts, fiscalYears } from "@
 import { eq, and, asc, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import ReportsCharts from "@/modules/reports/components/ReportsCharts";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -123,7 +124,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6">Auswertungen</h1>
+      <h1 className="text-xl font-bold mb-4">Auswertungen</h1>
+
+      {/* Sub-Navigation */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Link href="/reports/euer"          className="btn btn-sm btn-outline text-base">EÜR</Link>
+        <Link href="/reports/open-items"    className="btn btn-sm btn-outline text-base">Offene Posten</Link>
+        <Link href="/reports/account-ledger" className="btn btn-sm btn-outline text-base">Kontenblatt</Link>
+        <Link href="/reports/monthly"       className="btn btn-sm btn-outline text-base">Monatsbericht</Link>
+      </div>
 
       {/* Jahresfilter + PDF-Buttons */}
       <form method="GET" className="flex flex-wrap items-end gap-3 mb-6">

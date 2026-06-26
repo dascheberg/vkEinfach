@@ -5,6 +5,7 @@ import { eq, and, or, ilike, asc } from "drizzle-orm";
 import { formatDate, calculateAge, calculateMemberYears } from "@/lib/utils/calculations";
 import Link from "next/link";
 import MemberSearch from "@/modules/members/components/MemberSearch";
+import ImportModal from "@/components/ui/ImportModal";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<{ search?: string; active?: string; feePaid?: string }>;
@@ -55,6 +56,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
               Neues Mitglied
             </Link>
           )}
+          {isAdmin && <ImportModal type="members" />}
           <a href="/api/members/export?type=all" className="btn btn-ghost text-base">
             CSV Export
           </a>

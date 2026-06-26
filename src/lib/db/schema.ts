@@ -130,17 +130,23 @@ export const receipts = pgTable("receipts", {
 // REISEN
 // ─────────────────────────────────────────────
 export const travels = pgTable("travels", {
-  id:             serial("id").primaryKey(),
-  name:           varchar("name", { length: 150 }).notNull(),
-  travelDate:     date("travel_date"),
-  destination:    varchar("destination", { length: 150 }),
-  totalCost:      numeric("total_cost", { precision: 12, scale: 2 }),
+  id:              serial("id").primaryKey(),
+  name:            varchar("name", { length: 150 }).notNull(),
+  travelDate:      date("travel_date"),
+  dateFrom:        date("date_from"),
+  dateTo:          date("date_to"),
+  destination:     varchar("destination", { length: 150 }),
+  totalCost:       numeric("total_cost", { precision: 12, scale: 2 }),
   ownContribution: numeric("own_contribution", { precision: 12, scale: 2 }),
+  minParticipants: integer("min_participants").default(0),
+  maxParticipants: integer("max_participants"),
+  description:     text("description"),
+  fiscalYearId:    integer("fiscal_year_id").references(() => fiscalYears.id),
   // status: 'planning' | 'confirmed' | 'completed' | 'cancelled'
-  status:         varchar("status", { length: 20 }).default("planning").notNull(),
-  notes:          text("notes"),
-  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  status:          varchar("status", { length: 20 }).default("planning").notNull(),
+  notes:           text("notes"),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ─────────────────────────────────────────────
@@ -153,6 +159,8 @@ export const travelParticipants = pgTable("travel_participants", {
   memberId:     integer("member_id").references(() => members.id),
   guestId:      integer("guest_id").references(() => guests.id),
   registeredAt: timestamp("registered_at", { withTimezone: true }).defaultNow().notNull(),
+  isRegistered: boolean("is_registered").notNull().default(true),
+  isPaid:       boolean("is_paid").notNull().default(false),
   paidAmount:   numeric("paid_amount", { precision: 12, scale: 2 }).default("0").notNull(),
   paidAt:       date("paid_at"),
   notes:        text("notes"),
@@ -195,6 +203,9 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image:         text("image"),
   role:          text("role").notNull().default("member"),
+  banned:        boolean("banned").notNull().default(false),
+  username:      varchar("username", { length: 50 }).unique(),
+  approved:      boolean("approved").notNull().default(false),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

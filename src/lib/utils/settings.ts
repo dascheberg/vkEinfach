@@ -16,6 +16,7 @@ export type AppSettings = {
   clubName: string;
   clubSubtitle: string;
   receiptDefaultPath: string;
+  setupComplete: boolean;
   features: FeatureFlags;
   internalAccountRange: { min: number; max: number };
 };
@@ -29,6 +30,7 @@ export async function getSettings(): Promise<AppSettings> {
     clubName:           map["club_name"]            ?? "Mein Verein",
     clubSubtitle:       map["club_subtitle"]        ?? "Vereinskasse",
     receiptDefaultPath: map["receipt_default_path"] ?? "",
+    setupComplete:      map["setup_complete"] === "true",
     internalAccountRange: {
       min: parseInt(map["internal_accounts_min"] ?? "100"),
       max: parseInt(map["internal_accounts_max"] ?? "999"),

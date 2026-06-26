@@ -1,14 +1,14 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { transactions, externalAccounts, internalAccounts, members, fiscalYears, receipts } from "@/lib/db/schema";
-import { eq, and, desc, ilike, asc, count, inArray } from "drizzle-orm";
+import { eq, and, desc, ilike, asc, count, inArray, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import TransactionFilters from "@/modules/transactions/components/TransactionFilters";
 import TransactionActions from "@/modules/transactions/components/TransactionActions";
 import ReceiptBadge from "@/modules/receipts/components/ReceiptBadge";
 
-type SearchParams = Promise<{ fyId?: string; extId?: string; intId?: string; dir?: string; bn?: string }>;
+type SearchParams = Promise<{ fyId?: string; extId?: string; intId?: string; dir?: string; bn?: string; amount?: string }>;
 
 function formatCurrency(value: string | null): string {
   const num = parseFloat(value ?? "0");
@@ -43,17 +43,20 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     ? fiscalYearList.find((fy) => fy.id === parseInt(params.fyId!))
     : defaultFY;
 
-  const extId = params.extId ? parseInt(params.extId) : null;
-  const intId = params.intId ? parseInt(params.intId) : null;
-  const dir   = params.dir ?? null;
-  const bn    = params.bn?.trim() || null;
+  const extId  = params.extId ? parseInt(params.extId) : null;
+  const intId  = params.intId ? parseInt(params.intId) : null;
+  const dir    = params.dir ?? null;
+  const bn     = params.bn?.trim() || null;
+  const rawAmt = params.amount?.trim().replace(",", ".") || null;
+  const amount = rawAmt && !isNaN(parseFloat(rawAmt)) ? parseFloat(rawAmt) : null;
 
   const conditions = [];
   if (selectedFY) conditions.push(eq(transactions.fiscalYearId, selectedFY.id));
-  if (extId) conditions.push(eq(transactions.externalAccountId, extId));
-  if (intId) conditions.push(eq(transactions.internalAccountId, intId));
-  if (dir)   conditions.push(eq(transactions.direction, dir));
-  if (bn)    conditions.push(ilike(transactions.receiptNumber, `%${bn}%`));
+  if (extId)  conditions.push(eq(transactions.externalAccountId, extId));
+  if (intId)  conditions.push(eq(transactions.internalAccountId, intId));
+  if (dir)    conditions.push(eq(transactions.direction, dir));
+  if (bn)     conditions.push(ilike(transactions.receiptNumber, `%${bn}%`));
+  if (amount !== null) conditions.push(sql`${transactions.amount} = ${amount}`);
 
   const rows = await db
     .select({
@@ -113,6 +116,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         defaultIntId={params.intId ?? ""}
         defaultDir={params.dir ?? ""}
         defaultBn={params.bn ?? ""}
+        defaultAmount={params.amount ?? ""}
       />
 
       {/* Zusammenfassung */}

@@ -1,9 +1,15 @@
 import { requireAuth } from "@/lib/auth/session";
 import Navigation from "@/components/ui/Navigation";
+import { getSettings } from "@/lib/utils/settings";
+import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAuth();
-  const user = session.user as { name: string; role?: string };
+  const user = session.user as { name: string; role?: string; approved?: boolean };
+  if (!user.approved && user.role !== "admin") redirect("/pending");
+
+  const appSettings = await getSettings();
+  if (!appSettings.setupComplete) redirect("/setup");
 
   return (
     <div className="drawer lg:drawer-open">
