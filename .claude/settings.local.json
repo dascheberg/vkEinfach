@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"z:/home/diete/dev/vkEinfach/src/app/api/fiscal-years/[id]/carry-over\")"
+    ],
+    "additionalDirectories": [
+      "z:\\home\\diete\\dev\\vkEinfach\\src\\app\\api\\fiscal-years\\[id]"
+    ]
+  }
+}
