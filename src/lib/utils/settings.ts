@@ -19,6 +19,13 @@ export type AppSettings = {
   setupComplete: boolean;
   features: FeatureFlags;
   internalAccountRange: { min: number; max: number };
+  smtpHost: string;
+  smtpPort: string;
+  smtpUser: string;
+  smtpPassword: string;
+  smtpFrom: string;
+  smtpFromName: string;
+  smtpConfigured: boolean;
 };
 
 export async function getSettings(): Promise<AppSettings> {
@@ -44,6 +51,13 @@ export async function getSettings(): Promise<AppSettings> {
       reports:      map["module_reports"]      !== "false",
       receipts:     map["module_receipts"]     !== "false",
     },
+    smtpHost:       map["smtp_host"]      ?? "",
+    smtpPort:       map["smtp_port"]      ?? "587",
+    smtpUser:       map["smtp_user"]      ?? "",
+    smtpPassword:   map["smtp_password"]  ?? "",
+    smtpFrom:       map["smtp_from"]      ?? "",
+    smtpFromName:   map["smtp_from_name"] ?? "vkEinfach",
+    smtpConfigured: !!(map["smtp_host"] && map["smtp_user"] && map["smtp_password"]),
   };
 }
 

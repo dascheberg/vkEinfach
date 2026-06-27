@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { hashPassword } from "better-auth/crypto";
 import { headers } from "next/headers";
 import { and, eq } from "drizzle-orm";
-import { Resend } from "resend";
+import { sendMail } from "@/lib/utils/mailer";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +41,10 @@ export async function POST(
     return NextResponse.json({ error: "Benutzer nicht gefunden" }, { status: 404 });
   }
 
+  if (!targetUser.email) {
+    return NextResponse.json({ error: "Benutzer hat keine E-Mail-Adresse — Passwort-Reset per E-Mail nicht möglich." }, { status: 400 });
+  }
+
   const tempPassword = generatePassword();
   const hashed = await hashPassword(tempPassword);
 
@@ -49,23 +53,23 @@ export async function POST(
     .set({ password: hashed })
     .where(and(eq(account.userId, targetId), eq(account.providerId, "credential")));
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const fromEmail = process.env.RESEND_FROM_EMAIL ?? "noreply@example.com";
-
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await sendMail({
       to: targetUser.email,
       subject: "Ihr neues Einmalpasswort",
       html: `
         <p>Hallo ${targetUser.name},</p>
-        <p>Der Kassenwart hat Ihr Passwort zurückgesetzt.</p>
+        <p>der Kassenwart hat Ihr Passwort zurückgesetzt.</p>
         <p><strong>Ihr neues Einmalpasswort:</strong> <code>${tempPassword}</code></p>
         <p>Bitte melden Sie sich damit an und ändern Sie Ihr Passwort anschließend.</p>
       `,
     });
-  } catch {
-    return NextResponse.json({ error: "Passwort zurückgesetzt, E-Mail konnte nicht gesendet werden" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Fehler";
+    return NextResponse.json(
+      { error: `Passwort zurückgesetzt, E-Mail konnte nicht gesendet werden: ${msg}` },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true });

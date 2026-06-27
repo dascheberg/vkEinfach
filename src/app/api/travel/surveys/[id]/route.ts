@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { surveys, surveyOptions, surveyVotes, members } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export async function GET(
     const [myVote] = await db
       .select({ optionId: surveyVotes.optionId })
       .from(surveyVotes)
-      .where(eq(surveyVotes.memberId, member.id));
+      .where(and(eq(surveyVotes.memberId, member.id), eq(surveyVotes.surveyId, surveyId)));
     myVoteOptionId = myVote?.optionId ?? null;
   }
 
