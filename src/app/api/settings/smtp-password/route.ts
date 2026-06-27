@@ -20,12 +20,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Kein Passwort angegeben" }, { status: 400 });
   }
 
+  const key = process.env.SMTP_ENCRYPTION_KEY;
+  if (!key) {
+    console.error("[smtp-password] SMTP_ENCRYPTION_KEY ist nicht gesetzt");
+    return NextResponse.json({ error: "SMTP_ENCRYPTION_KEY fehlt in den Umgebungsvariablen (Vercel → Settings → Environment Variables)" }, { status: 500 });
+  }
+  if (key.length !== 64) {
+    console.error(`[smtp-password] SMTP_ENCRYPTION_KEY hat falsche Länge: ${key.length} Zeichen (erwartet: 64 Hex-Zeichen)`);
+    return NextResponse.json({ error: `SMTP_ENCRYPTION_KEY hat ${key.length} statt 64 Zeichen` }, { status: 500 });
+  }
+
   try {
     const encrypted = encryptPassword(body.password);
     await updateSetting("smtp_password", encrypted);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Fehler";
+    console.error("[smtp-password] Fehler beim Verschlüsseln:", e);
+    const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
