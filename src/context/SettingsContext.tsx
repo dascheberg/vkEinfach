@@ -19,6 +19,13 @@ const defaultSettings: AppSettings = {
     reports: true,
     receipts: true,
   },
+  smtpHost: "",
+  smtpPort: "587",
+  smtpUser: "",
+  smtpPassword: "",
+  smtpFrom: "",
+  smtpFromName: "vkEinfach",
+  smtpConfigured: false,
 };
 
 const SettingsContext = createContext<{
