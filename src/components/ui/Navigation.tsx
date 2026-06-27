@@ -20,27 +20,24 @@ function getAccessiblePaths(role: string): Set<string> | "all" {
     case "admin":
       return "all";
     case "finanzen":
-      // Alles außer /settings (kein Schreiben) und /users (nicht sichtbar)
       return new Set([
         "/dashboard", "/members", "/guests", "/accounts", "/transactions",
         "/fiscal-years", "/receipts", "/travel", "/travel/surveys",
-        "/reports",
+        "/reports", "/profile",
       ]);
     case "vorstand":
-      // Mitglieder lesen + Reisen/Umfragen voll; Buchungen/Konten/Belege/Buchungsjahre nur lesen (grau)
       return new Set([
-        "/dashboard", "/members", "/travel", "/travel/surveys", "/reports",
+        "/dashboard", "/members", "/travel", "/travel/surveys", "/reports", "/profile",
       ]);
     case "auditor":
-      // Alles lesen — alle Links aktiv (read-only wird von den Seiten selbst erzwungen)
       return new Set([
         "/dashboard", "/members", "/guests", "/accounts", "/transactions",
-        "/fiscal-years", "/receipts", "/travel", "/travel/surveys", "/reports",
+        "/fiscal-years", "/receipts", "/travel", "/travel/surveys", "/reports", "/profile",
       ]);
     case "member":
-      return new Set(["/dashboard", "/travel/surveys"]);
+      return new Set(["/dashboard", "/travel/surveys", "/profile"]);
     default:
-      return new Set(["/dashboard"]);
+      return new Set(["/dashboard", "/profile"]);
   }
 }
 
