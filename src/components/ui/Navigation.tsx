@@ -12,6 +12,9 @@ const ROLE_LABELS: Record<string, string> = {
   member: "Mitglied",
 };
 
+// Pfade die member-Rolle eigenständig aufrufen darf
+const MEMBER_ALLOWED = new Set(["/dashboard", "/settings"]);
+
 interface Props {
   userName: string;
   userRole: string;
@@ -28,19 +31,32 @@ export default function Navigation({ userName, userRole }: Props) {
   }
 
   const navItems = [
-    { href: "/dashboard",     label: "Übersicht",         show: true },
-    { href: "/members",       label: "Mitglieder",        show: settings.features.members },
-    { href: "/guests",        label: "Gäste",             show: settings.features.guests },
-    { href: "/accounts",      label: "Konten",            show: settings.features.accounts },
-    { href: "/transactions",  label: "Buchungen",         show: settings.features.transactions },
-    { href: "/fiscal-years",  label: "Buchungsjahre",     show: settings.features.transactions },
-    { href: "/receipts",      label: "Belege",            show: settings.features.receipts },
-    { href: "/travel",        label: "Reisen",            show: settings.features.travel },
-    { href: "/travel/surveys", label: "Umfragen",          show: settings.features.travel },
-    { href: "/reports",       label: "Auswertungen",      show: settings.features.reports },
-    { href: "/settings",      label: "Einstellungen",     show: true },
-    { href: "/users",         label: "Benutzer",          show: userRole === "admin" },
+    { href: "/dashboard",      label: "Übersicht",      featureOn: true },
+    { href: "/members",        label: "Mitglieder",     featureOn: settings.features.members },
+    { href: "/guests",         label: "Gäste",          featureOn: settings.features.guests },
+    { href: "/accounts",       label: "Konten",         featureOn: settings.features.accounts },
+    { href: "/transactions",   label: "Buchungen",      featureOn: settings.features.transactions },
+    { href: "/fiscal-years",   label: "Buchungsjahre",  featureOn: settings.features.transactions },
+    { href: "/receipts",       label: "Belege",         featureOn: settings.features.receipts },
+    { href: "/travel",         label: "Reisen",         featureOn: settings.features.travel },
+    { href: "/travel/surveys", label: "Umfragen",       featureOn: settings.features.travel },
+    { href: "/reports",        label: "Auswertungen",   featureOn: settings.features.reports },
+    { href: "/settings",       label: "Einstellungen",  featureOn: true },
+    // Benutzer nur für admin sichtbar
+    ...(userRole === "admin" ? [{ href: "/users", label: "Benutzer", featureOn: true }] : []),
   ];
+
+  function isActive(href: string) {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/travel") return pathname.startsWith("/travel") && !pathname.startsWith("/travel/surveys");
+    return pathname.startsWith(href);
+  }
+
+  function isAccessible(href: string, featureOn: boolean) {
+    if (!featureOn) return false;
+    if (userRole === "member") return MEMBER_ALLOWED.has(href);
+    return true;
+  }
 
   return (
     <div className="drawer-side z-10">
@@ -52,24 +68,28 @@ export default function Navigation({ userName, userRole }: Props) {
         </div>
 
         <ul className="menu p-4 flex-1 text-base">
-          {navItems
-            .filter((item) => item.show)
-            .map((item) => (
+          {navItems.map((item) => {
+            const accessible = isAccessible(item.href, item.featureOn);
+            if (accessible) {
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={isActive(item.href) ? "active" : ""}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            }
+            return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={
-                    item.href === "/dashboard"
-                      ? pathname === "/dashboard" ? "active" : ""
-                      : item.href === "/travel"
-                        ? pathname.startsWith("/travel") && !pathname.startsWith("/travel/surveys") ? "active" : ""
-                        : pathname.startsWith(item.href) ? "active" : ""
-                  }
-                >
+                <span className="opacity-40 cursor-not-allowed text-base-content">
                   {item.label}
-                </Link>
+                </span>
               </li>
-            ))}
+            );
+          })}
         </ul>
 
         <div className="p-4 border-t border-base-300">
