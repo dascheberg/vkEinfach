@@ -20,7 +20,7 @@ export type InternalAccountTemplate = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VARIANTE A — "Seniorenclub"
-// Basiert auf der Kontenstruktur des Seniorenclub Schmalfeld e.V.
+// Geeignet für Seniorenvereine mit Ausflügen, Reisen, Kaffeenachmittagen
 // Geeignet für: Vereine mit Ausflügen, Reisen, Kaffeenachmittagen,
 //               Grillabenden, Kulturveranstaltungen
 // ─────────────────────────────────────────────────────────────────────────────

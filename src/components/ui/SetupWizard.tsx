@@ -255,7 +255,7 @@ export default function SetupWizard({ initialStep }: Props) {
               <input
                 type="text"
                 className="input input-bordered text-base"
-                placeholder="z.B. Seniorenclub Schmalfeld e.V."
+                placeholder="z.B. Musterverein e.V."
                 value={clubName}
                 onChange={(e) => setClubName(e.target.value)}
               />
