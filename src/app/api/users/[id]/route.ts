@@ -32,12 +32,13 @@ export async function PUT(
   }
 
   const userUpdates: Record<string, unknown> = {};
-  if (body.role      !== undefined) userUpdates.role     = body.role;
-  if (body.banned    !== undefined) userUpdates.banned   = body.banned;
-  if (body.approved  !== undefined) userUpdates.approved = body.approved;
-  if (body.name      !== undefined) userUpdates.name     = body.name.trim();
-  if (body.email     !== undefined) userUpdates.email    = body.email.trim().toLowerCase();
-  if (body.username  !== undefined) userUpdates.username = body.username?.trim() || null;
+  if (body.role      !== undefined) userUpdates.role         = body.role;
+  if (body.banned    !== undefined) userUpdates.banned       = body.banned;
+  if (body.approved  !== undefined) userUpdates.approved     = body.approved;
+  if (body.name      !== undefined) userUpdates.name         = body.name.trim();
+  if (body.email     !== undefined) userUpdates.email        = body.email.trim().toLowerCase();
+  if (body.username  !== undefined) userUpdates.username     = body.username?.trim() || null;
+  if (body.function  !== undefined) userUpdates.userFunction = body.function?.trim() || "M";
 
   // Validate email uniqueness
   if (userUpdates.email) {
@@ -73,7 +74,7 @@ export async function PUT(
   }
 
   const [updated] = await db
-    .select({ id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, banned: user.banned, approved: user.approved, createdAt: user.createdAt })
+    .select({ id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, function: user.userFunction, banned: user.banned, approved: user.approved, createdAt: user.createdAt })
     .from(user)
     .where(eq(user.id, targetId));
 

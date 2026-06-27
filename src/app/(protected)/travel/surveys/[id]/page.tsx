@@ -13,7 +13,7 @@ export default async function SurveyDetailPage({
   const surveyId = parseInt(id);
 
   const isAdmin = role === "admin";
-  const canSeeResults = role === "admin" || role === "board" || role === "auditor";
+  const canSeeResults = role === "admin" || role === "finanzen" || role === "vorstand" || role === "auditor";
 
   return (
     <div>

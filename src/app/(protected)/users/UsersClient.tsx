@@ -10,6 +10,7 @@ interface UserRow {
   email: string;
   username: string | null;
   role: string;
+  function: string | null;
   banned: boolean;
   approved: boolean;
   createdAt: string;
@@ -17,13 +18,58 @@ interface UserRow {
 
 interface Props { currentUserId: string; }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Kassenwart",
-  board: "Vorstand",
-  auditor: "Kassenprüfer",
-  member: "Mitglied",
+export const ROLE_LABELS: Record<string, string> = {
+  admin:    "Administrator",
+  finanzen: "Finanzen",
+  vorstand: "Vorstand",
+  auditor:  "Kassenprüfer",
+  member:   "Mitglied",
 };
-const ROLES = ["admin", "board", "auditor", "member"];
+
+const ROLES = ["admin", "finanzen", "vorstand", "auditor", "member"];
+
+const FUNCTIONS = [
+  { key: "1.V",  label: "1. Vorsitzende(r)" },
+  { key: "2.V",  label: "2. Vorsitzende(r)" },
+  { key: "KW",   label: "Kassenwart" },
+  { key: "SW",   label: "Schriftwart" },
+  { key: "KS",   label: "Kassen- und Schriftwart" },
+  { key: "B1",   label: "1. Beisitzer" },
+  { key: "B2",   label: "2. Beisitzer" },
+  { key: "B3",   label: "3. Beisitzer" },
+  { key: "KP1",  label: "1. Kassenprüfer" },
+  { key: "KP2",  label: "2. Kassenprüfer" },
+];
+
+function parseFunctions(val: string | null): string[] {
+  if (!val) return [];
+  return val.split(",").map((s) => s.trim()).filter(Boolean).filter((s) => s !== "M");
+}
+
+function serializeFunctions(selected: string[]): string {
+  return selected.length > 0 ? selected.join(",") : "M";
+}
+
+function FunctionCheckboxes({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  function toggle(key: string) {
+    onChange(value.includes(key) ? value.filter((k) => k !== key) : [...value, key]);
+  }
+  return (
+    <div className="grid grid-cols-2 gap-1 mt-1">
+      {FUNCTIONS.map((f) => (
+        <label key={f.key} className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-primary checkbox-sm"
+            checked={value.includes(f.key)}
+            onChange={() => toggle(f.key)}
+          />
+          <span className="text-base">{f.key} — {f.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
 function isPlaceholderEmail(email: string) {
   return email.endsWith("@intern.local");
@@ -43,6 +89,7 @@ export default function UsersClient({ currentUserId }: Props) {
   const [cUsername, setCUsername] = useState("");
   const [cPassword, setCPassword] = useState("");
   const [cRole, setCRole] = useState("member");
+  const [cFunctions, setCFunctions] = useState<string[]>([]);
   const [cApproved, setCApproved] = useState(true);
   const [cLoading, setCLoading] = useState(false);
 
@@ -52,6 +99,7 @@ export default function UsersClient({ currentUserId }: Props) {
   const [eName, setEName] = useState("");
   const [eEmail, setEEmail] = useState("");
   const [eUsername, setEUsername] = useState("");
+  const [eFunctions, setEFunctions] = useState<string[]>([]);
   const [eLoading, setELoading] = useState(false);
 
   // Reset password modal
@@ -104,7 +152,8 @@ export default function UsersClient({ currentUserId }: Props) {
   }
 
   function openCreate() {
-    setCName(""); setCEmail(""); setCUsername(""); setCPassword(""); setCRole("member"); setCApproved(true); setError("");
+    setCName(""); setCEmail(""); setCUsername(""); setCPassword("");
+    setCRole("member"); setCFunctions([]); setCApproved(true); setError("");
     createRef.current?.showModal();
   }
 
@@ -117,7 +166,15 @@ export default function UsersClient({ currentUserId }: Props) {
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: cName, email: cEmail || undefined, username: cUsername || undefined, password: cPassword, role: cRole, approved: cApproved }),
+      body: JSON.stringify({
+        name: cName,
+        email: cEmail || undefined,
+        username: cUsername || undefined,
+        password: cPassword,
+        role: cRole,
+        function: serializeFunctions(cFunctions),
+        approved: cApproved,
+      }),
     });
     const data = await res.json();
     setCLoading(false);
@@ -132,6 +189,7 @@ export default function UsersClient({ currentUserId }: Props) {
     setEName(u.name);
     setEEmail(isPlaceholderEmail(u.email) ? "" : u.email);
     setEUsername(u.username ?? "");
+    setEFunctions(parseFunctions(u.function));
     setError("");
     editRef.current?.showModal();
   }
@@ -143,6 +201,7 @@ export default function UsersClient({ currentUserId }: Props) {
       name: eName,
       email: eEmail || undefined,
       username: eUsername || undefined,
+      function: serializeFunctions(eFunctions),
     });
     setELoading(false);
     if (ok) { editRef.current?.close(); setSuccess("Gespeichert"); await load(); router.refresh(); }
@@ -183,6 +242,7 @@ export default function UsersClient({ currentUserId }: Props) {
             <tr>
               <th>Name</th>
               <th>Login</th>
+              <th>Funktion</th>
               <th>Rolle</th>
               <th>Freigabe</th>
               <th>Status</th>
@@ -192,6 +252,7 @@ export default function UsersClient({ currentUserId }: Props) {
           <tbody>
             {users.map((u) => {
               const isSelf = u.id === currentUserId;
+              const funcs = parseFunctions(u.function);
               return (
                 <tr key={u.id}>
                   <td>
@@ -202,6 +263,11 @@ export default function UsersClient({ currentUserId }: Props) {
                     {!isPlaceholderEmail(u.email) && <div>{u.email}</div>}
                     {u.username && <div className="text-base text-primary/80 font-mono">@{u.username}</div>}
                     {!isPlaceholderEmail(u.email) && !u.username && <span className="text-base-content/30">–</span>}
+                  </td>
+                  <td>
+                    <span className="text-base text-base-content/70">
+                      {funcs.length > 0 ? funcs.join(", ") : <span className="text-base-content/30">M</span>}
+                    </span>
                   </td>
                   <td>
                     <select
@@ -269,7 +335,7 @@ export default function UsersClient({ currentUserId }: Props) {
 
       {/* ── Create modal ── */}
       <dialog ref={createRef} className="modal">
-        <div className="modal-box">
+        <div className="modal-box max-w-lg">
           <h3 className="font-bold text-xl mb-4">Neuer Benutzer</h3>
           {error && <div className="alert alert-error mb-3 text-base">{error}</div>}
           <div className="form-control mb-3">
@@ -294,6 +360,10 @@ export default function UsersClient({ currentUserId }: Props) {
               {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
             </select>
           </div>
+          <div className="form-control mb-4">
+            <label className="label"><span className="label-text text-base">Vereinsfunktion(en)</span></label>
+            <FunctionCheckboxes value={cFunctions} onChange={setCFunctions} />
+          </div>
           <label className="label cursor-pointer justify-start gap-3 mb-4">
             <input type="checkbox" className="checkbox checkbox-primary" checked={cApproved} onChange={(e) => setCApproved(e.target.checked)} />
             <span className="label-text text-base">Sofort freischalten</span>
@@ -310,7 +380,7 @@ export default function UsersClient({ currentUserId }: Props) {
 
       {/* ── Edit modal ── */}
       <dialog ref={editRef} className="modal">
-        <div className="modal-box">
+        <div className="modal-box max-w-lg">
           <h3 className="font-bold text-xl mb-4">Benutzer bearbeiten</h3>
           {error && <div className="alert alert-error mb-3 text-base">{error}</div>}
           <div className="form-control mb-3">
@@ -321,9 +391,13 @@ export default function UsersClient({ currentUserId }: Props) {
             <label className="label"><span className="label-text text-base">E-Mail</span></label>
             <input type="email" className="input input-bordered text-base" value={eEmail} onChange={(e) => setEEmail(e.target.value)} placeholder="optional" />
           </div>
-          <div className="form-control mb-6">
+          <div className="form-control mb-3">
             <label className="label"><span className="label-text text-base">Benutzername</span></label>
             <input type="text" className="input input-bordered text-base" value={eUsername} onChange={(e) => setEUsername(e.target.value)} placeholder="optional" autoCapitalize="none" />
+          </div>
+          <div className="form-control mb-6">
+            <label className="label"><span className="label-text text-base">Vereinsfunktion(en)</span></label>
+            <FunctionCheckboxes value={eFunctions} onChange={setEFunctions} />
           </div>
           <div className="modal-action">
             <form method="dialog"><button className="btn btn-ghost text-base">Abbrechen</button></form>

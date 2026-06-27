@@ -23,14 +23,147 @@ Vereinskasse für den **Seniorenclub Schmalfeld e.V.** Eigenständige Web-App un
 - PDF: pdfkit (serverExternalPackages: ["pdfkit"] in next.config.mjs)
 - Diagramme: Recharts
 
-## Rollen
+## Rollen & Berechtigungen
 
-| Rolle   | Bezeichnung  | Zugriff                 |
-| ------- | ------------ | ----------------------- |
-| admin   | Kassenwart   | Alles lesen + schreiben |
-| board   | Vorstand     | Alles nur lesen         |
-| auditor | Kassenprüfer | Alles nur lesen         |
-| member  | Mitglied     | Nur eigene Daten        |
+### Konzept: Funktion ≠ Rolle
+
+**Funktion** = Vereinsamt (wer ist die Person im Verein) — Mehrfachauswahl möglich **Rolle** = App-Berechtigung (was darf die Person in der App) — genau eine pro User
+
+Beide Felder sind in der `user`-Tabelle gespeichert:
+
+- `role` = App-Rolle (text, genau ein Wert)
+- `function` = Vereinsfunktion (varchar(100), kommasepariert z.B. "KW,B1")
+
+### App-Rollen (5 Rollen)
+
+| Rolle      | Bezeichnung   | Beschreibung                                                 |
+| ---------- | ------------- | ------------------------------------------------------------ |
+| `admin`    | Administrator | Vollzugriff inkl. Einstellungen + Benutzerverwaltung         |
+| `finanzen` | Finanzen      | Buchungen, Konten, Belege, Buchungsjahre — alles Finanzielle. Mehrere Personen möglich (Kassenwart + Backup) |
+| `vorstand` | Vorstand      | Lesen + Reisen/Umfragen anlegen und verwalten                |
+| `auditor`  | Kassenprüfer  | Nur lesen — kein Schreiben                                   |
+| `member`   | Mitglied      | Dashboard + Umfragen (lesen + abstimmen) + eigene Daten      |
+
+### Vereinsfunktionen (Feld function in user-Tabelle)
+
+Mehrfachauswahl via Checkboxen in /users beim Anlegen/Bearbeiten. Gespeichert als kommaseparierter String: "KW,B1" oder "1.V,SW"
+
+| Kürzel | Bezeichnung                   |
+| ------ | ----------------------------- |
+| `M`    | Mitglied (Standard / Default) |
+| `1.V`  | 1. Vorsitzende(r)             |
+| `2.V`  | 2. Vorsitzende(r)             |
+| `KW`   | Kassenwart                    |
+| `SW`   | Schriftwart                   |
+| `KS`   | Kassen- und Schriftwart       |
+| `B1`   | 1. Beisitzer                  |
+| `B2`   | 2. Beisitzer                  |
+| `B3`   | 3. Beisitzer                  |
+| `KP1`  | 1. Kassenprüfer               |
+| `KP2`  | 2. Kassenprüfer               |
+
+### DB-Änderung user-Tabelle (SQL für Neon)
+
+```sql
+-- Funktion zum App-User hinzufügen
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS function varchar(100) DEFAULT 'M';
+
+-- Neue Rolle 'finanzen' ersetzt 'board' (falls bereits board-User existieren)
+UPDATE "user" SET role = 'finanzen' WHERE role = 'board';
+```
+
+### Drizzle Schema — user-Tabelle ergänzen
+
+```ts
+function: varchar("function", { length: 100 }).default("M"),
+```
+
+### Berechtigungsmatrix
+
+| Bereich                           | admin | finanzen | vorstand | auditor | member |
+| --------------------------------- | ----- | -------- | -------- | ------- | ------ |
+| Einstellungen (App/SMTP/Module)   | ✅     | ❌        | ❌        | ❌       | ❌      |
+| Benutzerverwaltung /users         | ✅     | ❌        | ❌        | ❌       | ❌      |
+| Mitglieder lesen                  | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Mitglieder anlegen/bearbeiten     | ✅     | ✅        | ❌        | ❌       | ❌      |
+| Buchungen lesen                   | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Buchungen anlegen/stornieren      | ✅     | ✅        | ❌        | ❌       | ❌      |
+| Belege erfassen                   | ✅     | ✅        | ❌        | ❌       | ❌      |
+| Konten (intern/extern) lesen      | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Konten anlegen/bearbeiten         | ✅     | ✅        | ❌        | ❌       | ❌      |
+| Buchungsjahre lesen               | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Buchungsjahre anlegen/abschließen | ✅     | ✅        | ❌        | ❌       | ❌      |
+| Reisen lesen                      | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Reisen anlegen/verwalten          | ✅     | ✅        | ✅        | ❌       | ❌      |
+| Umfragen lesen                    | ✅     | ✅        | ✅        | ✅       | ✅      |
+| Umfragen abstimmen                | ✅     | ✅        | ✅        | ✅       | ✅      |
+| Umfragen anlegen/verwalten        | ✅     | ✅        | ✅        | ❌       | ❌      |
+| Auswertungen/Berichte lesen       | ✅     | ✅        | ✅        | ✅       | ❌      |
+| Eigene Login-Daten ändern         | ✅     | ✅        | ✅        | ✅       | ✅      |
+| Dashboard/Übersicht               | ✅     | ✅        | ✅        | ✅       | ✅      |
+
+### Navigation — farbliche Unterscheidung
+
+Menüpunkte in der Sidebar je nach Rolle farblich unterscheiden:
+
+- **Zugängliche Punkte**: normale Farbe (aktiv, klickbar)
+- **Blockierte Punkte**: grau + opacity-40, nicht klickbar (span statt Link)
+
+Regeln je Rolle:
+
+- `admin`: alle Punkte aktiv
+- `finanzen`: alle Punkte aktiv außer Einstellungen (nur lesen) und Benutzerverwaltung (nicht sichtbar)
+- `vorstand`: Buchungen/Konten/Belege/Buchungsjahre grau (nur lesen); Reisen/Umfragen aktiv
+- `auditor`: alle Punkte aktiv aber read-only (Seiten selbst zeigen keine Buttons)
+- `member`: nur Dashboard + Umfragen aktiv, Rest grau oder nicht sichtbar
+
+### Eigene Profilseite /profile (fehlt noch — für alle Rollen)
+
+Seite die JEDER Nutzer sehen und bearbeiten kann:
+
+- Login-E-Mail ändern
+- Benutzernamen ändern
+- Passwort ändern (Altes Passwort + Neues Passwort + Wiederholen)
+- Vereinsfunktion anzeigen (read-only — nur admin kann das ändern)
+- Rolle anzeigen (read-only)
+
+API-Routen:
+
+- GET  /api/profile        — eigene Daten laden
+- PUT  /api/profile        — E-Mail / Benutzername ändern
+- POST /api/profile/password — Passwort ändern (via Better Auth)
+
+### Einstellungsseite /settings — Sichtbarkeit je Rolle
+
+| Block                             | Sichtbar für |
+| --------------------------------- | ------------ |
+| App-Name, Vereinsname, Untertitel | nur admin    |
+| Modul-Toggles (an/ausschalten)    | nur admin    |
+| E-Mail Konfiguration (SMTP)       | nur admin    |
+| Scan-Beleg Standardverzeichnis    | nur admin    |
+
+Für alle anderen Rollen: /settings zeigt nur eine Meldung "Einstellungen können nur vom Administrator geändert werden." Oder: /settings ist im Menü nur für admin sichtbar — member/auditor/vorstand/finanzen werden zu /profile weitergeleitet.
+
+### Rollen-Anzeige in der UI (ROLE_LABELS)
+
+```ts
+const ROLE_LABELS: Record<string, string> = {
+  admin:    "Administrator",
+  finanzen: "Finanzen",
+  vorstand: "Vorstand",
+  auditor:  "Kassenprüfer",
+  member:   "Mitglied",
+};
+```
+
+### Wichtig: Migration bestehender Rollen
+
+Falls bereits User mit alten Rollen (board, board_1, board_2) existieren:
+
+```sql
+UPDATE "user" SET role = 'finanzen' WHERE role IN ('board', 'board_1', 'kassenwart');
+UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
+```
 
 ## Aktueller Stand
 
@@ -68,9 +201,10 @@ Vereinskasse für den **Seniorenclub Schmalfeld e.V.** Eigenständige Web-App un
 
 ### Offen — Reihenfolge
 
-- Phase 0.6a: Benutzerverwaltung /users (Admin verwaltet alle User + Rollen + Benutzername)
-- Phase 0.6b: First-Run-Assistent /setup (Einrichtung für neue Vereinsinstallationen)
-- Phase 0.6c: Gästeverwaltung /guests (Voraussetzung für Phase 4)
+- Phase 0.6a: Benutzerverwaltung /users (Admin verwaltet alle User + Rollen + Funktion)
+- Phase 0.6b: First-Run-Assistent /setup
+- Phase 0.6c: Gästeverwaltung /guests
+- Phase 0.6d: Profilseite /profile (alle Rollen — eigene Login-Daten ändern)
 - Phase 3 Rest: Dashboard-Kennzahlen, EÜR-Seite, Monatsbericht, Offene Posten, Kontenblatt
 - Phase 4: Reiseverwaltung + Umfragen (selbst gebaut)
 - Phase 5: CI/CD + Vercel-Deployment + Domain-Setup + SSL
@@ -97,11 +231,15 @@ export const auth = betterAuth({
 });
 ```
 
-1. Spalten username und approved in Neon zur user-Tabelle hinzufügen:
+1. Spalten username, approved und function in Neon zur user-Tabelle hinzufügen:
 
 ```sql
-ALTER TABLE "user" ADD COLUMN username varchar(50) UNIQUE;
-ALTER TABLE "user" ADD COLUMN approved boolean NOT NULL DEFAULT false;
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS username varchar(50) UNIQUE;
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS approved boolean NOT NULL DEFAULT false;
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS function varchar(100) DEFAULT 'M';
+-- Bestehende Rollen migrieren falls nötig:
+UPDATE "user" SET role = 'finanzen' WHERE role IN ('board', 'kassenwart');
+UPDATE "user" SET approved = true WHERE role = 'admin';
 ```
 
 1. Drizzle-Schema (schema.ts) — user-Tabelle ergänzen:
@@ -109,6 +247,7 @@ ALTER TABLE "user" ADD COLUMN approved boolean NOT NULL DEFAULT false;
 ```ts
 username: varchar("username", { length: 50 }).unique(),
 approved: boolean("approved").notNull().default(false),
+function: varchar("function", { length: 100 }).default("M"),
 ```
 
 1. Login-Formular (src/app/login/page.tsx) anpassen:
@@ -484,16 +623,24 @@ Gefundene Stellen durch Settings-Werte ersetzen.
 
 ## Phase 0.6a — Benutzerverwaltung (/users)
 
-Neue Seite, nur für Rolle admin sichtbar. Navigation-Eintrag erscheint nur wenn admin.
+Neue Seite, nur für Rolle admin sichtbar.
 
 ### Was die Seite kann
 
-- Liste aller User: Name, E-Mail, Benutzername, Rolle, Freigabe-Status, Erstellt am
-- Neuen User anlegen: Name, E-Mail (optional), Benutzername (Pflicht wenn keine E-Mail), Passwort, Rolle wählen, Checkbox "Sofort freischalten"
-- Rolle ändern: Dropdown admin/board/auditor/member
+- Liste aller User: Name, E-Mail, Benutzername, Rolle, Funktion, Freigabe-Status, Erstellt am
+- Neuen User anlegen:
+  - Name (Pflicht)
+  - E-Mail (optional wenn Benutzername gesetzt)
+  - Benutzername (Pflicht wenn keine E-Mail)
+  - Passwort (Einmalpasswort)
+  - Rolle wählen: admin / finanzen / vorstand / auditor / member
+  - Vereinsfunktion: Checkboxen (Mehrfachauswahl): M / 1.V / 2.V / KW / SW / KS / B1 / B2 / B3 / KP1 / KP2
+  - Checkbox "Sofort freischalten" (approved = true)
+- Rolle ändern: Dropdown
+- Vereinsfunktion ändern: Checkboxen
 - User freischalten / sperren (approved true/false)
 - User deaktivieren / reaktivieren (kein Löschen — Datenschutz)
-- Passwort zurücksetzen: generiert Temp-Passwort, sendet E-Mail via sendMail() (nodemailer)
+- Passwort zurücksetzen: generiert Temp-Passwort, sendet E-Mail via sendMail()
 
 ### Rollen-Anzeige in der UI
 
@@ -530,7 +677,34 @@ Die user-Tabelle liegt in Neon und ist im Drizzle-Schema als schema.user definie
 
 ------
 
-## Phase 0.6b — First-Run-Assistent (/setup)
+## Phase 0.6d — Profilseite (/profile)
+
+Für ALLE Rollen zugänglich — jeder Nutzer kann seine eigenen Login-Daten ändern. Menüpunkt "Mein Profil" erscheint für alle Rollen in der Navigation (unten, neben Abmelden).
+
+### Was die Seite zeigt
+
+- Name (read-only — nur admin kann Namen ändern)
+- Benutzername (änderbar)
+- E-Mail (änderbar)
+- Vereinsfunktion (read-only — nur admin kann das ändern)
+- Rolle (read-only, in Klartext: "Finanzen", "Mitglied" usw.)
+- Passwort ändern (separater Block): Altes Passwort + Neues Passwort + Wiederholen
+
+### API-Routen
+
+- GET  /api/profile           — eigene User-Daten laden (aus Session)
+- PUT  /api/profile           — Benutzername / E-Mail ändern
+- POST /api/profile/password  — Passwort ändern (Better Auth)
+
+### Regeln
+
+- Jeder User sieht nur seine eigenen Daten
+- Benutzername muss eindeutig bleiben (Prüfung vor Speichern)
+- E-Mail muss eindeutig bleiben (Prüfung vor Speichern)
+- Passwort-Änderung erfordert altes Passwort zur Verifikation
+- Kein Zugriff auf andere User-Daten
+
+------
 
 Einmalige Einrichtung beim ersten Start einer frischen Installation. Danach dauerhaft deaktiviert (settings-Key setup_complete = 'true').
 
@@ -1413,7 +1587,7 @@ src/
 | survey_options      | Umfrage-Optionen                                             |
 | survey_votes        | Abstimmungen (je Mitglied eine Stimme)                       |
 | settings            | App-Einstellungen (key/value), inkl. setup_complete          |
-| user                | Better Auth User (role, username, approved — E-Mail optional) |
+| user                | Better Auth User (role, username, approved, function — E-Mail optional) |
 | session             | Better Auth Session                                          |
 | account             | Better Auth Account                                          |
 | verification        | Better Auth Verification                                     |

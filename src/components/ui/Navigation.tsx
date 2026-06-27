@@ -5,15 +5,44 @@ import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useSettings } from "@/context/SettingsContext";
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Kassenwart",
-  board: "Vorstand",
-  auditor: "Kassenprüfer",
-  member: "Mitglied",
+export const ROLE_LABELS: Record<string, string> = {
+  admin:    "Administrator",
+  finanzen: "Finanzen",
+  vorstand: "Vorstand",
+  auditor:  "Kassenprüfer",
+  member:   "Mitglied",
 };
 
-// Pfade die member-Rolle eigenständig aufrufen darf
-const MEMBER_ALLOWED = new Set(["/dashboard", "/settings"]);
+// Pfade die für eine Rolle aktiv (klickbar) sind.
+// Alle anderen werden grau dargestellt.
+function getAccessiblePaths(role: string): Set<string> | "all" {
+  switch (role) {
+    case "admin":
+      return "all";
+    case "finanzen":
+      // Alles außer /settings (kein Schreiben) und /users (nicht sichtbar)
+      return new Set([
+        "/dashboard", "/members", "/guests", "/accounts", "/transactions",
+        "/fiscal-years", "/receipts", "/travel", "/travel/surveys",
+        "/reports",
+      ]);
+    case "vorstand":
+      // Mitglieder lesen + Reisen/Umfragen voll; Buchungen/Konten/Belege/Buchungsjahre nur lesen (grau)
+      return new Set([
+        "/dashboard", "/members", "/travel", "/travel/surveys", "/reports",
+      ]);
+    case "auditor":
+      // Alles lesen — alle Links aktiv (read-only wird von den Seiten selbst erzwungen)
+      return new Set([
+        "/dashboard", "/members", "/guests", "/accounts", "/transactions",
+        "/fiscal-years", "/receipts", "/travel", "/travel/surveys", "/reports",
+      ]);
+    case "member":
+      return new Set(["/dashboard", "/travel/surveys"]);
+    default:
+      return new Set(["/dashboard"]);
+  }
+}
 
 interface Props {
   userName: string;
@@ -30,6 +59,8 @@ export default function Navigation({ userName, userRole }: Props) {
     router.push("/login");
   }
 
+  const accessiblePaths = getAccessiblePaths(userRole);
+
   const navItems = [
     { href: "/dashboard",      label: "Übersicht",      featureOn: true },
     { href: "/members",        label: "Mitglieder",     featureOn: settings.features.members },
@@ -42,8 +73,10 @@ export default function Navigation({ userName, userRole }: Props) {
     { href: "/travel/surveys", label: "Umfragen",       featureOn: settings.features.travel },
     { href: "/reports",        label: "Auswertungen",   featureOn: settings.features.reports },
     { href: "/settings",       label: "Einstellungen",  featureOn: true },
-    // Benutzer nur für admin sichtbar
+    // Benutzer nur für admin
     ...(userRole === "admin" ? [{ href: "/users", label: "Benutzer", featureOn: true }] : []),
+    // Profil für alle
+    { href: "/profile",        label: "Mein Profil",    featureOn: true },
   ];
 
   function isActive(href: string) {
@@ -52,10 +85,10 @@ export default function Navigation({ userName, userRole }: Props) {
     return pathname.startsWith(href);
   }
 
-  function isAccessible(href: string, featureOn: boolean) {
+  function isAccessible(href: string, featureOn: boolean): boolean {
     if (!featureOn) return false;
-    if (userRole === "member") return MEMBER_ALLOWED.has(href);
-    return true;
+    if (accessiblePaths === "all") return true;
+    return accessiblePaths.has(href);
   }
 
   return (
@@ -73,10 +106,7 @@ export default function Navigation({ userName, userRole }: Props) {
             if (accessible) {
               return (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={isActive(item.href) ? "active" : ""}
-                  >
+                  <Link href={item.href} className={isActive(item.href) ? "active" : ""}>
                     {item.label}
                   </Link>
                 </li>

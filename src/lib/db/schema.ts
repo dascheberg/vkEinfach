@@ -203,6 +203,7 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image:         text("image"),
   role:          text("role").notNull().default("member"),
+  userFunction:  varchar("function", { length: 100 }).default("M"),
   banned:        boolean("banned").notNull().default(false),
   username:      varchar("username", { length: 50 }).unique(),
   approved:      boolean("approved").notNull().default(false),

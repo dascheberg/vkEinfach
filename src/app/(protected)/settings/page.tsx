@@ -3,11 +3,20 @@
 import { useSettings } from "@/context/SettingsContext";
 import { authClient } from "@/lib/auth/client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { settings, reload } = useSettings();
   const { data: session } = authClient.useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === "admin";
+  const router = useRouter();
+  const role = (session?.user as { role?: string })?.role;
+  const isAdmin = role === "admin";
+
+  useEffect(() => {
+    // Session noch nicht geladen → warten
+    if (session === undefined) return;
+    if (role && role !== "admin") router.replace("/profile");
+  }, [session, role, router]);
   const [appName, setAppName] = useState("");
   const [clubName, setClubName] = useState("");
   const [clubSubtitle, setClubSubtitle] = useState("");

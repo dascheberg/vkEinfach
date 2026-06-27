@@ -23,6 +23,7 @@ export async function GET() {
       email: user.email,
       username: user.username,
       role: user.role,
+      function: user.userFunction,
       banned: user.banned,
       approved: user.approved,
       createdAt: user.createdAt,
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (getRole(session) !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, email, username: uname, password, role: newRole, approved: approve } = body;
+  const { name, email, username: uname, password, role: newRole, function: newFunction, approved: approve } = body;
 
   if (!name || !password) {
     return NextResponse.json({ error: "Name und Passwort sind erforderlich" }, { status: 400 });
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
 
   const updates: Record<string, unknown> = {
     role: newRole ?? "member",
+    userFunction: newFunction ?? "M",
     approved: approve === true,
   };
   if (uname?.trim()) updates.username = uname.trim();
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [newUser] = await db
-    .select({ id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, banned: user.banned, approved: user.approved, createdAt: user.createdAt })
+    .select({ id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, function: user.userFunction, banned: user.banned, approved: user.approved, createdAt: user.createdAt })
     .from(user)
     .where(eq(user.email, effectiveEmail));
 
