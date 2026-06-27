@@ -1,10 +1,13 @@
 "use client";
 
 import { useSettings } from "@/context/SettingsContext";
+import { authClient } from "@/lib/auth/client";
 import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
   const { settings, reload } = useSettings();
+  const { data: session } = authClient.useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === "admin";
   const [appName, setAppName] = useState("");
   const [clubName, setClubName] = useState("");
   const [clubSubtitle, setClubSubtitle] = useState("");
@@ -181,24 +184,26 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="card bg-base-100 shadow mb-6">
-        <div className="card-body">
-          <h2 className="text-base font-bold mb-4">Module</h2>
-          <div className="flex flex-col gap-3">
-            {modules.map((mod) => (
-              <div key={mod.key} className="flex items-center justify-between">
-                <span className="text-base">{mod.label}</span>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary"
-                  checked={mod.value}
-                  onChange={() => toggleModule(mod.key, mod.value)}
-                />
-              </div>
-            ))}
+      {isAdmin && (
+        <div className="card bg-base-100 shadow mb-6">
+          <div className="card-body">
+            <h2 className="text-base font-bold mb-4">Module</h2>
+            <div className="flex flex-col gap-3">
+              {modules.map((mod) => (
+                <div key={mod.key} className="flex items-center justify-between">
+                  <span className="text-base">{mod.label}</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={mod.value}
+                    onChange={() => toggleModule(mod.key, mod.value)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="card bg-base-100 shadow mb-6">
         <div className="card-body">
