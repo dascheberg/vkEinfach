@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import SetupWizard from "@/components/ui/SetupWizard";
 
+export const dynamic = "force-dynamic";
+
 export default async function SetupPage() {
   const appSettings = await getSettings();
   if (appSettings.setupComplete) redirect("/login");
