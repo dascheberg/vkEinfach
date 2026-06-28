@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { externalAccounts, settings } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +25,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Mindestens ein Konto erforderlich" }, { status: 400 });
   }
 
+  // Bereits existierende Konten-Namen ermitteln (Duplikat-Schutz)
+  const names = accounts.map((a) => a.name).filter(Boolean);
+  const existingRows = names.length > 0
+    ? await db.select({ name: externalAccounts.name }).from(externalAccounts).where(inArray(externalAccounts.name, names))
+    : [];
+  const existingNames = new Set(existingRows.map((r) => r.name));
+
   const created = [];
   for (let i = 0; i < accounts.length; i++) {
     const { name, accountType } = accounts[i];
-    if (!name) continue;
+    if (!name || existingNames.has(name)) continue;
     const [acc] = await db
       .insert(externalAccounts)
       .values({ name, accountType: accountType || "cash", sortOrder: i })

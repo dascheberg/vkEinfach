@@ -23,19 +23,19 @@ function getAccessiblePaths(role: string): Set<string> | "all" {
       return new Set([
         "/dashboard", "/members", "/guests", "/accounts", "/transactions",
         "/fiscal-years", "/receipts", "/travel", "/travel/surveys",
-        "/reports", "/profile",
+        "/reports", "/profile", "/help",
       ]);
     case "vorstand":
       return new Set([
-        "/dashboard", "/members", "/travel", "/travel/surveys", "/reports", "/profile",
+        "/dashboard", "/members", "/travel", "/travel/surveys", "/reports", "/profile", "/help",
       ]);
     case "auditor":
       return new Set([
         "/dashboard", "/members", "/guests", "/accounts", "/transactions",
-        "/fiscal-years", "/receipts", "/travel", "/travel/surveys", "/reports", "/profile",
+        "/fiscal-years", "/receipts", "/travel", "/travel/surveys", "/reports", "/profile", "/help",
       ]);
     case "member":
-      return new Set(["/dashboard", "/travel/surveys", "/profile"]);
+      return new Set(["/dashboard", "/travel/surveys", "/profile", "/help"]);
     default:
       return new Set(["/dashboard", "/profile"]);
   }
@@ -72,8 +72,9 @@ export default function Navigation({ userName, userRole }: Props) {
     { href: "/settings",       label: "Einstellungen",  featureOn: true },
     // Benutzer nur für admin
     ...(userRole === "admin" ? [{ href: "/users", label: "Benutzer", featureOn: true }] : []),
-    // Profil für alle
+    // Profil und Hilfe für alle
     { href: "/profile",        label: "Mein Profil",    featureOn: true },
+    { href: "/help",           label: "Hilfe",          featureOn: true },
   ];
 
   function isActive(href: string) {

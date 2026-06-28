@@ -32,16 +32,23 @@ export async function POST(req: NextRequest) {
   await updateSetting("club_name", clubName || "Mein Verein");
   await updateSetting("club_subtitle", clubSubtitle || "Vereinskasse");
 
-  // Create admin user via Better Auth
-  try {
-    await auth.api.signUpEmail({
-      body: { name: adminName, email: adminEmail, password: adminPassword },
-    });
-  } catch {
-    return NextResponse.json({ error: "E-Mail bereits vergeben" }, { status: 400 });
+  // Existiert bereits ein User mit dieser E-Mail?
+  const [existingUser] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, adminEmail));
+
+  if (!existingUser) {
+    try {
+      await auth.api.signUpEmail({
+        body: { name: adminName, email: adminEmail, password: adminPassword },
+      });
+    } catch {
+      return NextResponse.json({ error: "E-Mail bereits vergeben" }, { status: 400 });
+    }
   }
 
-  // Set role to admin and approve immediately
+  // Rolle + approved setzen (ob neu oder bereits vorhanden)
   await db.update(user).set({ role: "admin", approved: true }).where(eq(user.email, adminEmail));
 
   return NextResponse.json({ ok: true }, { status: 201 });

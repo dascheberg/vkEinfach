@@ -25,6 +25,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bezeichnung und Zeitraum erforderlich" }, { status: 400 });
   }
 
+  // Duplikat-Schutz: gleiches Label bereits vorhanden?
+  const [existing] = await db
+    .select()
+    .from(fiscalYears)
+    .where(eq(fiscalYears.label, label));
+  if (existing) {
+    return NextResponse.json(existing, { status: 200 });
+  }
+
   const [fy] = await db
     .insert(fiscalYears)
     .values({ label, dateFrom, dateTo, isActive: true })
