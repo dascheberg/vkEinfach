@@ -100,10 +100,15 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h1 className="text-xl font-bold">Buchungen</h1>
-        {isAdmin && (
-          <Link href="/transactions/neu" className="btn btn-primary text-base">
-            Neue Buchung
-          </Link>
+        {(isAdmin || role === "finanzen") && (
+          <div className="flex gap-2">
+            <Link href="/transactions/neu" className="btn btn-primary text-base">
+              + Einzelbuchung
+            </Link>
+            <Link href="/transactions/sammel" className="btn btn-secondary text-base">
+              + Sammelbuchung
+            </Link>
+          </div>
         )}
       </div>
 

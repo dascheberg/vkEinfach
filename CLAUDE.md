@@ -2,7 +2,9 @@
 
 ## Projektübersicht
 
-Vereinskasse für den **Seniorenclub Schmalfeld e.V.** Eigenständige Web-App unter `kasse.scschmalfeld.org` — verlinkt von scschmalfeld.org. Ziel: Wiederverwendbar für beliebige Vereine (Vereinsname, Module konfigurierbar).
+Vereinskasse für den **Seniorenclub Schmalfeld e.V.**
+Eigenständige Web-App unter `kasse.scschmalfeld.org` — verlinkt von scschmalfeld.org.
+Ziel: Wiederverwendbar für beliebige Vereine (Vereinsname, Module konfigurierbar).
 
 | Eigenschaft         | Wert                            |
 | ------------------- | ------------------------------- |
@@ -27,40 +29,41 @@ Vereinskasse für den **Seniorenclub Schmalfeld e.V.** Eigenständige Web-App un
 
 ### Konzept: Funktion ≠ Rolle
 
-**Funktion** = Vereinsamt (wer ist die Person im Verein) — Mehrfachauswahl möglich **Rolle** = App-Berechtigung (was darf die Person in der App) — genau eine pro User
+**Funktion** = Vereinsamt (wer ist die Person im Verein) — Mehrfachauswahl möglich
+**Rolle** = App-Berechtigung (was darf die Person in der App) — genau eine pro User
 
 Beide Felder sind in der `user`-Tabelle gespeichert:
-
 - `role` = App-Rolle (text, genau ein Wert)
 - `function` = Vereinsfunktion (varchar(100), kommasepariert z.B. "KW,B1")
 
 ### App-Rollen (5 Rollen)
 
-| Rolle      | Bezeichnung   | Beschreibung                                                 |
-| ---------- | ------------- | ------------------------------------------------------------ |
-| `admin`    | Administrator | Vollzugriff inkl. Einstellungen + Benutzerverwaltung         |
-| `finanzen` | Finanzen      | Buchungen, Konten, Belege, Buchungsjahre — alles Finanzielle. Mehrere Personen möglich (Kassenwart + Backup) |
-| `vorstand` | Vorstand      | Lesen + Reisen/Umfragen anlegen und verwalten                |
-| `auditor`  | Kassenprüfer  | Nur lesen — kein Schreiben                                   |
-| `member`   | Mitglied      | Dashboard + Umfragen (lesen + abstimmen) + eigene Daten      |
+| Rolle | Bezeichnung | Beschreibung |
+|---|---|---|
+| `admin` | Administrator | Vollzugriff inkl. Einstellungen + Benutzerverwaltung |
+| `finanzen` | Finanzen | Buchungen, Konten, Belege, Buchungsjahre — alles Finanzielle. Mehrere Personen möglich (Kassenwart + Backup) |
+| `vorstand` | Vorstand | Lesen + Reisen/Umfragen anlegen und verwalten |
+| `auditor` | Kassenprüfer | Nur lesen — kein Schreiben |
+| `member` | Mitglied | Dashboard + Umfragen (lesen + abstimmen) + eigene Daten |
 
 ### Vereinsfunktionen (Feld function in user-Tabelle)
 
-Mehrfachauswahl via Checkboxen in /users beim Anlegen/Bearbeiten. Gespeichert als kommaseparierter String: "KW,B1" oder "1.V,SW"
+Mehrfachauswahl via Checkboxen in /users beim Anlegen/Bearbeiten.
+Gespeichert als kommaseparierter String: "KW,B1" oder "1.V,SW"
 
-| Kürzel | Bezeichnung                   |
-| ------ | ----------------------------- |
-| `M`    | Mitglied (Standard / Default) |
-| `1.V`  | 1. Vorsitzende(r)             |
-| `2.V`  | 2. Vorsitzende(r)             |
-| `KW`   | Kassenwart                    |
-| `SW`   | Schriftwart                   |
-| `KS`   | Kassen- und Schriftwart       |
-| `B1`   | 1. Beisitzer                  |
-| `B2`   | 2. Beisitzer                  |
-| `B3`   | 3. Beisitzer                  |
-| `KP1`  | 1. Kassenprüfer               |
-| `KP2`  | 2. Kassenprüfer               |
+| Kürzel | Bezeichnung |
+|---|---|
+| `M` | Mitglied (Standard / Default) |
+| `1.V` | 1. Vorsitzende(r) |
+| `2.V` | 2. Vorsitzende(r) |
+| `KW` | Kassenwart |
+| `SW` | Schriftwart |
+| `KS` | Kassen- und Schriftwart |
+| `B1` | 1. Beisitzer |
+| `B2` | 2. Beisitzer |
+| `B3` | 3. Beisitzer |
+| `KP1` | 1. Kassenprüfer |
+| `KP2` | 2. Kassenprüfer |
 
 ### DB-Änderung user-Tabelle (SQL für Neon)
 
@@ -80,37 +83,35 @@ function: varchar("function", { length: 100 }).default("M"),
 
 ### Berechtigungsmatrix
 
-| Bereich                           | admin | finanzen | vorstand | auditor | member |
-| --------------------------------- | ----- | -------- | -------- | ------- | ------ |
-| Einstellungen (App/SMTP/Module)   | ✅     | ❌        | ❌        | ❌       | ❌      |
-| Benutzerverwaltung /users         | ✅     | ❌        | ❌        | ❌       | ❌      |
-| Mitglieder lesen                  | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Mitglieder anlegen/bearbeiten     | ✅     | ✅        | ❌        | ❌       | ❌      |
-| Buchungen lesen                   | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Buchungen anlegen/stornieren      | ✅     | ✅        | ❌        | ❌       | ❌      |
-| Belege erfassen                   | ✅     | ✅        | ❌        | ❌       | ❌      |
-| Konten (intern/extern) lesen      | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Konten anlegen/bearbeiten         | ✅     | ✅        | ❌        | ❌       | ❌      |
-| Buchungsjahre lesen               | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Buchungsjahre anlegen/abschließen | ✅     | ✅        | ❌        | ❌       | ❌      |
-| Reisen lesen                      | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Reisen anlegen/verwalten          | ✅     | ✅        | ✅        | ❌       | ❌      |
-| Umfragen lesen                    | ✅     | ✅        | ✅        | ✅       | ✅      |
-| Umfragen abstimmen                | ✅     | ✅        | ✅        | ✅       | ✅      |
-| Umfragen anlegen/verwalten        | ✅     | ✅        | ✅        | ❌       | ❌      |
-| Auswertungen/Berichte lesen       | ✅     | ✅        | ✅        | ✅       | ❌      |
-| Eigene Login-Daten ändern         | ✅     | ✅        | ✅        | ✅       | ✅      |
-| Dashboard/Übersicht               | ✅     | ✅        | ✅        | ✅       | ✅      |
+| Bereich | admin | finanzen | vorstand | auditor | member |
+|---|---|---|---|---|---|
+| Einstellungen (App/SMTP/Module) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Benutzerverwaltung /users | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Mitglieder lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Mitglieder anlegen/bearbeiten | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Buchungen lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Buchungen anlegen/stornieren | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Belege erfassen | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Konten (intern/extern) lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Konten anlegen/bearbeiten | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Buchungsjahre lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Buchungsjahre anlegen/abschließen | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Reisen lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Reisen anlegen/verwalten | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Umfragen lesen | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Umfragen abstimmen | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Umfragen anlegen/verwalten | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Auswertungen/Berichte lesen | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Eigene Login-Daten ändern | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Dashboard/Übersicht | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### Navigation — farbliche Unterscheidung
 
 Menüpunkte in der Sidebar je nach Rolle farblich unterscheiden:
-
 - **Zugängliche Punkte**: normale Farbe (aktiv, klickbar)
 - **Blockierte Punkte**: grau + opacity-40, nicht klickbar (span statt Link)
 
 Regeln je Rolle:
-
 - `admin`: alle Punkte aktiv
 - `finanzen`: alle Punkte aktiv außer Einstellungen (nur lesen) und Benutzerverwaltung (nicht sichtbar)
 - `vorstand`: Buchungen/Konten/Belege/Buchungsjahre grau (nur lesen); Reisen/Umfragen aktiv
@@ -120,7 +121,6 @@ Regeln je Rolle:
 ### Eigene Profilseite /profile (fehlt noch — für alle Rollen)
 
 Seite die JEDER Nutzer sehen und bearbeiten kann:
-
 - Login-E-Mail ändern
 - Benutzernamen ändern
 - Passwort ändern (Altes Passwort + Neues Passwort + Wiederholen)
@@ -128,21 +128,23 @@ Seite die JEDER Nutzer sehen und bearbeiten kann:
 - Rolle anzeigen (read-only)
 
 API-Routen:
-
 - GET  /api/profile        — eigene Daten laden
 - PUT  /api/profile        — E-Mail / Benutzername ändern
 - POST /api/profile/password — Passwort ändern (via Better Auth)
 
 ### Einstellungsseite /settings — Sichtbarkeit je Rolle
 
-| Block                             | Sichtbar für |
-| --------------------------------- | ------------ |
-| App-Name, Vereinsname, Untertitel | nur admin    |
-| Modul-Toggles (an/ausschalten)    | nur admin    |
-| E-Mail Konfiguration (SMTP)       | nur admin    |
-| Scan-Beleg Standardverzeichnis    | nur admin    |
+| Block | Sichtbar für |
+|---|---|
+| App-Name, Vereinsname, Untertitel | nur admin |
+| Modul-Toggles (an/ausschalten) | nur admin |
+| E-Mail Konfiguration (SMTP) | nur admin |
+| Scan-Beleg Standardverzeichnis | nur admin |
 
-Für alle anderen Rollen: /settings zeigt nur eine Meldung "Einstellungen können nur vom Administrator geändert werden." Oder: /settings ist im Menü nur für admin sichtbar — member/auditor/vorstand/finanzen werden zu /profile weitergeleitet.
+Für alle anderen Rollen: /settings zeigt nur eine Meldung
+"Einstellungen können nur vom Administrator geändert werden."
+Oder: /settings ist im Menü nur für admin sichtbar — member/auditor/vorstand/finanzen
+werden zu /profile weitergeleitet.
 
 ### Rollen-Anzeige in der UI (ROLE_LABELS)
 
@@ -159,7 +161,6 @@ const ROLE_LABELS: Record<string, string> = {
 ### Wichtig: Migration bestehender Rollen
 
 Falls bereits User mit alten Rollen (board, board_1, board_2) existieren:
-
 ```sql
 UPDATE "user" SET role = 'finanzen' WHERE role IN ('board', 'board_1', 'kassenwart');
 UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
@@ -205,6 +206,7 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
 - Phase 0.6b: First-Run-Assistent /setup
 - Phase 0.6c: Gästeverwaltung /guests
 - Phase 0.6d: Profilseite /profile (alle Rollen — eigene Login-Daten ändern)
+- Sammelbuchung /transactions/sammel (Massenbuchung für Beiträge + Veranstaltungen)
 - Phase 3 Rest: Dashboard-Kennzahlen, EÜR-Seite, Monatsbericht, Offene Posten, Kontenblatt
 - Phase 4: Reiseverwaltung + Umfragen (selbst gebaut)
 - Phase 5: CI/CD + Vercel-Deployment + Domain-Setup + SSL
@@ -212,16 +214,16 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
 - Phase 7: PWA (next-pwa)
 - Phase 8: Dokumentation
 
-------
+---
 
 ## Better Auth — Username-Plugin
 
-Mitglieder ohne E-Mail-Adresse können sich per Benutzername einloggen. E-Mail ist optional. Login-Formular zeigt "Benutzername oder E-Mail".
+Mitglieder ohne E-Mail-Adresse können sich per Benutzername einloggen.
+E-Mail ist optional. Login-Formular zeigt "Benutzername oder E-Mail".
 
 ### Umsetzung
 
 1. Plugin aktivieren in src/lib/auth/index.ts:
-
 ```ts
 import { username } from "better-auth/plugins";
 
@@ -231,8 +233,7 @@ export const auth = betterAuth({
 });
 ```
 
-1. Spalten username, approved und function in Neon zur user-Tabelle hinzufügen:
-
+2. Spalten username, approved und function in Neon zur user-Tabelle hinzufügen:
 ```sql
 ALTER TABLE "user" ADD COLUMN IF NOT EXISTS username varchar(50) UNIQUE;
 ALTER TABLE "user" ADD COLUMN IF NOT EXISTS approved boolean NOT NULL DEFAULT false;
@@ -242,19 +243,19 @@ UPDATE "user" SET role = 'finanzen' WHERE role IN ('board', 'kassenwart');
 UPDATE "user" SET approved = true WHERE role = 'admin';
 ```
 
-1. Drizzle-Schema (schema.ts) — user-Tabelle ergänzen:
-
+3. Drizzle-Schema (schema.ts) — user-Tabelle ergänzen:
 ```ts
 username: varchar("username", { length: 50 }).unique(),
 approved: boolean("approved").notNull().default(false),
 function: varchar("function", { length: 100 }).default("M"),
 ```
 
-1. Login-Formular (src/app/login/page.tsx) anpassen:
+4. Login-Formular (src/app/login/page.tsx) anpassen:
    - Feld "Benutzername oder E-Mail" statt nur E-Mail
    - Wenn Eingabe ein @ enthält → signIn.email()
    - Sonst → signIn.username()
-2. Benutzerverwaltung /users — beim Anlegen Benutzername vergeben (Pflicht wenn keine E-Mail)
+
+5. Benutzerverwaltung /users — beim Anlegen Benutzername vergeben (Pflicht wenn keine E-Mail)
 
 ### Regeln
 
@@ -275,11 +276,12 @@ if (isEmail) {
 }
 ```
 
-------
+---
 
 ## Genehmigungsroutine — User-Freischaltung
 
-Jeder neue Benutzer muss durch einen Admin freigeschaltet werden bevor er die App nutzen kann. Greift für alle Rollen außer admin.
+Jeder neue Benutzer muss durch einen Admin freigeschaltet werden bevor er
+die App nutzen kann. Greift für alle Rollen außer admin.
 
 ### Workflow
 
@@ -300,21 +302,19 @@ User kann die App normal nutzen
 
 ### Zwei Szenarien
 
-| Szenario                                  | Beschreibung                                                 |
-| ----------------------------------------- | ------------------------------------------------------------ |
+| Szenario | Beschreibung |
+|---|---|
 | Admin legt User an + schaltet sofort frei | approved beim Anlegen direkt auf true setzen (Checkbox im Formular) |
-| Admin legt User an, schaltet später frei  | approved bleibt false, User wartet auf Freischaltung         |
+| Admin legt User an, schaltet später frei | approved bleibt false, User wartet auf Freischaltung |
 
 ### Technische Umsetzung
 
 SQL (bereits im Username-Plugin-Abschnitt enthalten):
-
 ```sql
 ALTER TABLE "user" ADD COLUMN approved boolean NOT NULL DEFAULT false;
 ```
 
 In (protected)/layout.tsx — Prüfung nach requireAuth():
-
 ```ts
 const session = await requireAuth();
 if (!session.user.approved && session.user.role !== 'admin') {
@@ -322,12 +322,12 @@ if (!session.user.approved && session.user.role !== 'admin') {
 }
 ```
 
-Wichtig: Admin (role = 'admin') ist immer approved — kein redirect. Beim Anlegen des ersten Admin-Users (Setup-Wizard): approved = true setzen.
+Wichtig: Admin (role = 'admin') ist immer approved — kein redirect.
+Beim Anlegen des ersten Admin-Users (Setup-Wizard): approved = true setzen.
 
 ### Seite /pending (ungeschützt, kein requireAuth)
 
 Zeigt nur eine freundliche Meldung:
-
 - "Ihr Zugang wurde noch nicht freigeschaltet."
 - "Bitte wenden Sie sich an den Kassenwart."
 - Kontaktdaten des Admins (aus Settings: club_name, optional contact_email)
@@ -345,7 +345,6 @@ Zeigt nur eine freundliche Meldung:
 ### E-Mail-Benachrichtigung (optional, via nodemailer/sendMail)
 
 Wenn Admin einen User anlegt ohne sofortige Freischaltung:
-
 - E-Mail an Admin (aus settings: smtp_from oder admin_email)
 - Betreff: "vkEinfach — Neuer Benutzer wartet auf Freischaltung"
 - Inhalt: Name, Benutzername/E-Mail, Link zu /users
@@ -361,11 +360,13 @@ Wenn Admin einen User anlegt ohne sofortige Freischaltung:
 - Kein Client-seitiger Bypass möglich
 - Admin kann sich nicht selbst sperren (approved bleibt true für eigenen Account)
 
-------
+---
 
 ## E-Mail Konfiguration — SMTP (nodemailer)
 
-vkEinfach verwendet KEIN externes E-Mail-Service wie Resend. Jeder Verein konfiguriert seinen eigenen SMTP-Server in den Einstellungen. Dadurch ist vkEinfach vollständig unabhängig von externen Diensten.
+vkEinfach verwendet KEIN externes E-Mail-Service wie Resend.
+Jeder Verein konfiguriert seinen eigenen SMTP-Server in den Einstellungen.
+Dadurch ist vkEinfach vollständig unabhängig von externen Diensten.
 
 ### Paket
 
@@ -377,11 +378,9 @@ npm install --legacy-peer-deps -D @types/nodemailer
 ### Umgebungsvariable für Verschlüsselung
 
 In .env.local und Vercel Environment Variables:
-
 ```
 SMTP_ENCRYPTION_KEY=<32-Byte Hex-String>
 ```
-
 Generieren: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ### Settings-Tabelle — neue Keys (SQL für Neon)
@@ -458,7 +457,6 @@ smtpConfigured: boolean;   // true wenn host + user + password gesetzt
 ### Einstellungsseite /settings — neuer Block "E-Mail Konfiguration"
 
 Neuer Abschnitt unter den Modul-Toggles:
-
 - SMTP-Server (Textfeld)
 - SMTP-Port (Textfeld + Radio: 587/465/25)
 - Benutzername (Textfeld)
@@ -470,7 +468,8 @@ Neuer Abschnitt unter den Modul-Toggles:
 
 ### API-Route POST /api/settings/test-smtp
 
-Sendet Test-Mail an E-Mail des eingeloggten Admin-Users. Gibt { ok: true } oder { error: "Fehlermeldung" } zurück.
+Sendet Test-Mail an E-Mail des eingeloggten Admin-Users.
+Gibt { ok: true } oder { error: "Fehlermeldung" } zurück.
 
 ### Wo sendMail() verwendet wird
 
@@ -489,7 +488,7 @@ Absender:        kasse@scschmalfeld.org
 Absender-Name:   Seniorenclub Schmalfeld e.V.
 ```
 
-------
+---
 
 ## Finale Architektur-Entscheidung
 
@@ -528,7 +527,8 @@ Kein gemeinsamer Code-Pfad, keine gemeinsamen Daten, keine gegenseitige Beeinflu
 
 ### Mitglieder-Zugriff von überall
 
-Vercel + Neon = Cloud-Deployment → Mitglieder können von jedem Gerät zugreifen. SQLite (lokal) wäre nur für Heimnetz geeignet — wird NICHT verwendet.
+Vercel + Neon = Cloud-Deployment → Mitglieder können von jedem Gerät zugreifen.
+SQLite (lokal) wäre nur für Heimnetz geeignet — wird NICHT verwendet.
 
 ### Was du konkret tust
 
@@ -548,39 +548,38 @@ Vercel + Neon = Cloud-Deployment → Mitglieder können von jedem Gerät zugreif
 
 ### E-Mail — kein externer Dienst
 
-Resend wird NICHT verwendet. Jeder Verein konfiguriert seinen eigenen SMTP-Server in den App-Einstellungen (/settings → E-Mail Konfiguration). Strato-Kunden: smtp.strato.de Port 587. Details siehe Abschnitt "E-Mail Konfiguration — SMTP".
+Resend wird NICHT verwendet. Jeder Verein konfiguriert seinen eigenen
+SMTP-Server in den App-Einstellungen (/settings → E-Mail Konfiguration).
+Strato-Kunden: smtp.strato.de Port 587.
+Details siehe Abschnitt "E-Mail Konfiguration — SMTP".
 
 ### Was noch zu tun ist für vollständige Kapselung
 
-| Aufgabe                                           | Status                                  |
-| ------------------------------------------------- | --------------------------------------- |
-| Kein hardkodierter Vereinsname im Code            | ⚠️ Bereinigen (grep-Befehle siehe unten) |
-| SMTP statt Resend                                 | 🔲 Claude Code umsetzen lassen           |
-| Setup-Wizard vollständig                          | 🔲 Phase 0.6b                            |
-| README Installations-Anleitung                    | 🔲 Phase 8                               |
-| Alle Settings aus DB (kein .env für Vereinsdaten) | ✅ Bereits so                            |
+| Aufgabe | Status |
+|---|---|
+| Kein hardkodierter Vereinsname im Code | ⚠️ Bereinigen (grep-Befehle siehe unten) |
+| SMTP statt Resend | 🔲 Claude Code umsetzen lassen |
+| Setup-Wizard vollständig | 🔲 Phase 0.6b |
+| README Installations-Anleitung | 🔲 Phase 8 |
+| Alle Settings aus DB (kein .env für Vereinsdaten) | ✅ Bereits so |
 
 Hardkodierte Vereinsnamen bereinigen:
-
 ```bash
 grep -r "Seniorenclub" ~/dev/vkEinfach/src/
 grep -r "Schmalfeld" ~/dev/vkEinfach/src/
 grep -r "scschmalfeld" ~/dev/vkEinfach/src/
 grep -r "kasse.scschmalfeld" ~/dev/vkEinfach/src/
 ```
-
 Alle Treffer durch Settings-Werte ersetzen:
-
 - club_name statt "Seniorenclub Schmalfeld e.V."
 - app_name statt "vkEinfach" (hardkodiert)
 - settings.smtpFrom statt "kasse@scschmalfeld.org"
 
-------
+---
 
 ## Multi-Instance Strategie (vkEinfach als Produkt für beliebige Vereine)
 
 vkEinfach ist als Multi-Instance App konzipiert:
-
 - Jeder Verein bekommt eine eigene Vercel-Deployment + eigene Neon-DB
 - Kein Multi-Tenant (keine club_id in allen Tabellen) — einfacher, sicherer, isolierter
 - Setup-Wizard macht Ersteinrichtung für neue Vereine möglich
@@ -595,33 +594,210 @@ vkEinfach ist als Multi-Instance App konzipiert:
 
 ### Wichtig: Kein hardkodierter Vereinsname
 
-Im gesamten Code darf NIRGENDWO "Seniorenclub Schmalfeld" oder "Schmalfeld" hardkodiert stehen — alles muss aus settings kommen (app_name, club_name).
+Im gesamten Code darf NIRGENDWO "Seniorenclub Schmalfeld" oder "Schmalfeld"
+hardkodiert stehen — alles muss aus settings kommen (app_name, club_name).
 
 Prüfen mit:
-
 ```bash
 grep -r "Seniorenclub" ~/dev/vkEinfach/src/
 grep -r "Schmalfeld" ~/dev/vkEinfach/src/
 grep -r "scschmalfeld" ~/dev/vkEinfach/src/
 ```
-
 Gefundene Stellen durch Settings-Werte ersetzen.
 
-------
+---
 
 ## Deployment — vkeinfach.de
 
-| Eigenschaft     | Wert                                                         |
-| --------------- | ------------------------------------------------------------ |
-| Produktiv-URL   | https://app.vkeinfach.de                                     |
-| Vercel-Domain   | app.vkeinfach.de                                             |
-| DNS bei Strato  | app CNAME cname.vercel-dns.com (in vkeinfach.de DNS)         |
-| E-Mail Absender | konfigurierbar via SMTP in /settings                         |
-| Resend          | wird NICHT mehr verwendet — aus Vercel + .env.local entfernen |
+| Eigenschaft | Wert |
+|---|---|
+| Produktiv-URL | https://app.vkeinfach.de |
+| Vercel-Domain | app.vkeinfach.de |
+| DNS bei Strato | app CNAME cname.vercel-dns.com (in vkeinfach.de DNS) |
+| E-Mail Absender | konfigurierbar via SMTP in /settings |
+| Resend | wird NICHT mehr verwendet — aus Vercel + .env.local entfernen |
 
-------
+---
 
-## Phase 0.6a — Benutzerverwaltung (/users)
+## Sammelbuchung (/transactions/sammel)
+
+Massenbuchung für wiederkehrende Zahlungen (Mitgliedsbeiträge, Veranstaltungs-Eigenanteile).
+Erreichbar über Button "+ Sammelbuchung" auf der Buchungsseite neben "+ Einzelbuchung".
+
+### UI-Konzept
+
+```
+┌─────────────────────────────────────────────┐
+│  Sammelbuchung                              │
+├─────────────────────────────────────────────┤
+│  Datum:        [15.01.2026        ]         │
+│  Ext. Konto:   [Barkasse        ▼]         │
+│  Int. Konto:   [103 - Beitrag   ▼]         │
+│  Betrag/Person:[30,00 €          ]         │
+│  Beschreibung: [Mitgliedsbeitrag ]         │
+│                                             │
+│  Gesamtbetrag: [1.200,00 €  ] ← optional, zur Kontrolle
+├─────────────────────────────────────────────┤
+│  Personen auswählen:                        │
+│  🔍 Suche...          [Alle] [Keine]        │
+│                                             │
+│  ☑ Müller, Hans                [Mitglied]  │
+│  ☑ Schmidt, Grete              [Mitglied]  │
+│  ☐ Bauer, Klaus (bereits bez.) [Mitglied]  │
+│  ☑ Meier, Kurt                 [Gast]      │
+├─────────────────────────────────────────────┤
+│  40 Personen × 30,00 € = 1.200,00 €  ✅   │
+│                                             │
+│  [Abbrechen]    [Buchungen erstellen]       │
+└─────────────────────────────────────────────┘
+```
+
+### Intelligente Mitgliederliste — abhängig vom internen Konto
+
+| Internes Konto | Liste zeigt | Zusatzfeld |
+|---|---|---|
+| 103 (Beitrag lfd. Jahr) | Nur Mitglieder mit fee_paid_current_year = false | — |
+| 104 (Beitrag nächstes Jahr) | Alle aktiven Mitglieder | — |
+| 160/170 oder anderes Reise-Konto | Alle Mitglieder + Gäste | Reise-Dropdown (Pflicht) |
+| 200–240 (Veranstaltungen) | Alle Mitglieder + Gäste | — |
+| Alle anderen | Alle aktiven Mitglieder | — |
+
+Bei Konto 103: bereits bezahlte Mitglieder ausgegraut und nicht wählbar.
+
+**Reise-Konto Erkennung:** Konten deren accountKind = 'income' UND Nummer im Bereich
+160–199 (konfigurierbar) gelten als Reise-Konten → Reise-Dropdown erscheint automatisch.
+Alternativ: Konten die im Namen "Reise" oder "Eigenanteil" enthalten.
+
+### Reise-Dropdown (erscheint dynamisch bei Reise-Konten)
+
+```
+Int. Konto:  [160 - Reise 1 Eigenanteil     ▼]
+Reise:       [Ostseereise 2026 (15 Teiln.) ▼]  ← Pflichtfeld, erscheint automatisch
+```
+
+- Zeigt alle Reisen des aktiven Buchungsjahres mit Status 'planning' oder 'confirmed'
+- Format: "Reisename (Datum)" 
+- Pflichtfeld wenn Reise-Konto gewählt — Speichern ohne Auswahl nicht möglich
+
+### Gesamtbetrag-Kontrolle
+
+- Gesamtbetrag-Feld ist optional (kein Pflichtfeld)
+- Wenn ausgefüllt: muss exakt mit (Anzahl × Betrag/Person) übereinstimmen
+- Grün ✅ wenn Übereinstimmung, Rot ❌ bei Abweichung
+- Bei Abweichung: Speichern nicht möglich bis Korrektur
+
+```
+Eingabe:          1.200,00 €
+Berechnet:        1.200,00 €  ✅ — Buchungen erstellen möglich
+Eingabe:          1.100,00 €
+Berechnet:        1.200,00 €  ❌ — Abweichung 100,00 €, Speichern gesperrt
+```
+
+### Was im Hintergrund passiert (Option A — separate Buchungen)
+
+- Je gewählter Person wird eine eigene Buchung angelegt
+- Gleiche Felder für alle: Datum, Betrag, Ext.Konto, Int.Konto, Beschreibung
+- Unterschiedlich je Buchung: member_id oder guest_id, receipt_number (fortlaufend)
+- Belegnummern fortlaufend: 2026-0041, 2026-0042, ... 2026-0080
+- Kein db.transaction() — sequenzielle Inserts in try-catch (Neon HTTP-Treiber!)
+
+### Automatische Statusupdates nach Buchungserstellung
+
+| Konto | Automatische Aktion |
+|---|---|
+| 103 (Beitrag lfd. Jahr) | fee_paid_current_year = true für alle gewählten Mitglieder |
+| Reise-Konto (160/170 etc.) | travel_participants: upsert mit is_registered = true, is_paid = true |
+| Alle anderen | Kein automatischer Status-Update |
+
+#### Reise-Konto: Upsert-Logik in travel_participants
+
+Für jede gewählte Person bei Reise-Konto:
+
+```
+Person bereits in travel_participants für diese Reise?
+        ↓
+   JA  → UPDATE: is_paid = true, paid_at = heute
+        ↓
+   NEIN → INSERT: is_registered = true, is_paid = true,
+                  paid_at = heute, registered_at = heute
+          (Person wird automatisch zur Reise angemeldet UND als bezahlt markiert)
+```
+
+```ts
+for (const person of selectedParticipants) {
+  // 1. Buchung anlegen
+  await createTransaction({ ...bookingData, memberId: person.memberId });
+
+  // 2. travel_participants upsert
+  const existing = await db.query.travelParticipants.findFirst({
+    where: and(
+      eq(travelParticipants.travelId, selectedTravelId),
+      person.memberId
+        ? eq(travelParticipants.memberId, person.memberId)
+        : eq(travelParticipants.guestId, person.guestId)
+    )
+  });
+
+  if (existing) {
+    await db.update(travelParticipants)
+      .set({ isPaid: true, paidAt: new Date() })
+      .where(eq(travelParticipants.id, existing.id));
+  } else {
+    await db.insert(travelParticipants).values({
+      travelId: selectedTravelId,
+      memberId: person.memberId ?? null,
+      guestId: person.guestId ?? null,
+      isRegistered: true,
+      isPaid: true,
+      paidAt: new Date(),
+    });
+  }
+}
+```
+
+Hinweis: Kein db.transaction() — sequenzielle Ausführung in try-catch (Neon HTTP-Treiber!)
+
+### API-Route
+
+POST /api/transactions/sammel
+
+Request:
+```ts
+{
+  date: string,
+  externalAccountId: number,
+  internalAccountId: number,
+  amountPerPerson: number,
+  description: string,
+  totalAmount?: number,        // optional, nur zur Validierung
+  travelId?: number,           // Pflicht wenn Reise-Konto gewählt
+  participants: {
+    memberId?: number,
+    guestId?: number,
+  }[]
+}
+```
+
+Response:
+```ts
+{
+  created: number,             // Anzahl erstellter Buchungen
+  totalAmount: number,         // Gesamtbetrag
+  receiptNumbers: string[],    // alle vergebenen Belegnummern
+  statusUpdates: {
+    feesPaid?: number,         // Mitglieder deren Beitrag auf bezahlt gesetzt wurde
+    travelRegistered?: number, // neu zur Reise angemeldete Personen
+    travelPaid?: number,       // Teilnehmer deren Reisezahlung auf bezahlt gesetzt wurde
+  }
+}
+```
+
+### Sichtbarkeit
+
+Nur für Rollen: admin, finanzen
+Nicht sichtbar für: vorstand, auditor, member
+
+---
 
 Neue Seite, nur für Rolle admin sichtbar.
 
@@ -660,7 +836,9 @@ Neue Seite, nur für Rolle admin sichtbar.
 
 ### Hinweis zu Better Auth user-Tabelle
 
-Die user-Tabelle liegt in Neon und ist im Drizzle-Schema als schema.user definiert. Rolle wird als text-Feld role gespeichert. Direkter Drizzle-Zugriff ist erlaubt für Admin-Operationen (Rolle setzen, User auflisten).
+Die user-Tabelle liegt in Neon und ist im Drizzle-Schema als schema.user definiert.
+Rolle wird als text-Feld role gespeichert. Direkter Drizzle-Zugriff ist erlaubt für
+Admin-Operationen (Rolle setzen, User auflisten).
 
 ### API-Routen
 
@@ -675,11 +853,12 @@ Die user-Tabelle liegt in Neon und ist im Drizzle-Schema als schema.user definie
 - Kein User kann seine eigene Rolle ändern oder sich selbst deaktivieren
 - Passwörter werden NIE im Klartext gespeichert (Better Auth übernimmt Hashing)
 
-------
+---
 
 ## Phase 0.6d — Profilseite (/profile)
 
-Für ALLE Rollen zugänglich — jeder Nutzer kann seine eigenen Login-Daten ändern. Menüpunkt "Mein Profil" erscheint für alle Rollen in der Navigation (unten, neben Abmelden).
+Für ALLE Rollen zugänglich — jeder Nutzer kann seine eigenen Login-Daten ändern.
+Menüpunkt "Mein Profil" erscheint für alle Rollen in der Navigation (unten, neben Abmelden).
 
 ### Was die Seite zeigt
 
@@ -704,14 +883,14 @@ Für ALLE Rollen zugänglich — jeder Nutzer kann seine eigenen Login-Daten än
 - Passwort-Änderung erfordert altes Passwort zur Verifikation
 - Kein Zugriff auf andere User-Daten
 
-------
+---
 
-Einmalige Einrichtung beim ersten Start einer frischen Installation. Danach dauerhaft deaktiviert (settings-Key setup_complete = 'true').
+Einmalige Einrichtung beim ersten Start einer frischen Installation.
+Danach dauerhaft deaktiviert (settings-Key setup_complete = 'true').
 
 ### Erkennung ob Setup nötig
 
 In (protected)/layout.tsx (Server Component):
-
 - getSettings() aufrufen
 - Wenn settings.setupComplete !== 'true' → redirect('/setup')
 - /setup ist NICHT geschützt durch requireAuth (muss vor Login erreichbar sein)
@@ -722,43 +901,43 @@ In (protected)/layout.tsx (Server Component):
 ### Setup-Schritte (Wizard mit Fortschrittsanzeige)
 
 Schritt 1 — Willkommen & Admin-Account anlegen
-
-- Nur angezeigt wenn noch kein User in der DB existiert
-- Felder: App-Name, Vereinsname, Untertitel
-- Admin-Name, Admin-E-Mail, Passwort, Passwort wiederholen
-- POST /api/setup/admin → legt User an, setzt Rolle admin, speichert App-Settings
+  - Nur angezeigt wenn noch kein User in der DB existiert
+  - Felder: App-Name, Vereinsname, Untertitel
+  - Admin-Name, Admin-E-Mail, Passwort, Passwort wiederholen
+  - POST /api/setup/admin → legt User an, setzt Rolle admin, speichert App-Settings
 
 Schritt 2 — Erstes Buchungsjahr anlegen
-
-- Felder: Bezeichnung (z.B. "2026"), Von-Datum, Bis-Datum
-- Wird sofort als aktives Jahr gesetzt (is_active = true)
-- POST /api/setup/fiscal-year
+  - Felder: Bezeichnung (z.B. "2026"), Von-Datum, Bis-Datum
+  - Wird sofort als aktives Jahr gesetzt (is_active = true)
+  - POST /api/setup/fiscal-year
 
 Schritt 3 — Externe Konten anlegen
-
-- Mindestens 1 Konto (Barkasse) ist Pflicht
-- Bis zu 5 Konten, Name + Typ (cash/bank/savings)
-- POST /api/setup/accounts
+  - Mindestens 1 Konto (Barkasse) ist Pflicht
+  - Bis zu 5 Konten, Name + Typ (cash/bank/savings)
+  - POST /api/setup/accounts
 
 Schritt 4 — Interne Konten
-
-- Drei Optionen zur Auswahl: a) Startkonfiguration "Seniorenclub" (39 Konten, Ausflüge/Reisen/Vereinsleben) b) Startkonfiguration "Allgemein klein" (33 Konten, generisch für beliebige Vereine) c) CSV-Import (eigener, bereits individualisierter Kontenrahmen hochladen)
-- CSV-Format: nummer;bezeichnung;typ (Semikolon-getrennt)
-- Erlaubte Typen: income, expense, neutral, transfer, cancel
-- Nach Import: Vorschau der Konten vor dem Speichern
-- POST /api/setup/internal-accounts
+  - Drei Optionen zur Auswahl:
+    a) Startkonfiguration "Seniorenclub" (39 Konten, Ausflüge/Reisen/Vereinsleben)
+    b) Startkonfiguration "Allgemein klein" (33 Konten, generisch für beliebige Vereine)
+    c) CSV-Import (eigener, bereits individualisierter Kontenrahmen hochladen)
+  - CSV-Format: nummer;bezeichnung;typ (Semikolon-getrennt)
+  - Erlaubte Typen: income, expense, neutral, transfer, cancel
+  - Nach Import: Vorschau der Konten vor dem Speichern
+  - POST /api/setup/internal-accounts
 
 Schritt 5 — Fertig
-
-- Zusammenfassung was angelegt wurde
-- settings-Key setup_complete auf 'true' setzen
-- Button: "Zur Anwendung" → redirect /dashboard
+  - Zusammenfassung was angelegt wurde
+  - settings-Key setup_complete auf 'true' setzen
+  - Button: "Zur Anwendung" → redirect /dashboard
 
 ### Settings-Key
 
-setup_complete = 'false' (default) setup_complete = 'true'  (nach Abschluss des Wizards)
+setup_complete = 'false' (default)
+setup_complete = 'true'  (nach Abschluss des Wizards)
 
-INSERT INTO settings (key, value, description) VALUES ('setup_complete', 'false', 'Ersteinrichtung abgeschlossen');
+INSERT INTO settings (key, value, description) VALUES
+  ('setup_complete', 'false', 'Ersteinrichtung abgeschlossen');
 
 ### API-Routen für Setup
 
@@ -768,13 +947,15 @@ INSERT INTO settings (key, value, description) VALUES ('setup_complete', 'false'
 - POST /api/setup/internal-accounts   — Interne Konten (Bulk oder leer)
 - POST /api/setup/complete            — setup_complete auf true setzen
 
-Alle /api/setup-Routen sind NICHT durch requireAuth geschützt, prüfen aber ob setup_complete bereits true ist — wenn ja: 403 zurückgeben.
+Alle /api/setup-Routen sind NICHT durch requireAuth geschützt,
+prüfen aber ob setup_complete bereits true ist — wenn ja: 403 zurückgeben.
 
-------
+---
 
 ## Phase 0.6c — Gästeverwaltung (/guests)
 
-Voraussetzung für Phase 4 (Reiseverwaltung). Gäste sind keine Vereinsmitglieder, können aber an Reisen teilnehmen. Werden nicht in Mitglieder-Auswertungen einbezogen.
+Voraussetzung für Phase 4 (Reiseverwaltung). Gäste sind keine Vereinsmitglieder,
+können aber an Reisen teilnehmen. Werden nicht in Mitglieder-Auswertungen einbezogen.
 
 ### Tabelle guests (bereits in DB angelegt)
 
@@ -794,12 +975,11 @@ id, last_name, first_name, contact_info (Freitext: Tel/E-Mail/Adresse), notes, c
 - PUT    /api/guests/[id]   — Gast bearbeiten
 - DELETE /api/guests/[id]   — Gast löschen (nur wenn keine Reise-Teilnahme)
 
-------
+---
 
 ## Phase 3 Rest — Auswertungen Ergänzungen
 
 Umsetzungsreihenfolge für Claude Code:
-
 1. Dashboard-Kennzahlen + Altersdiagramm
 2. EÜR-Seite
 3. Offene Posten
@@ -807,21 +987,20 @@ Umsetzungsreihenfolge für Claude Code:
 5. Monatsbericht
 6. PDF-Export für alle neuen Seiten
 
-------
+---
 
 ### 3.1 Dashboard-Startseite (/dashboard) — Kennzahlen + Altersverteilung
 
 #### Obere Reihe — 4 Kennzahlen-Cards
 
-| Card                | Datenquelle                                           | Inhalt                             |
-| ------------------- | ----------------------------------------------------- | ---------------------------------- |
-| Mitglieder          | members WHERE is_active = true                        | "93 aktiv — Ø Alter: 71 Jahre"     |
-| Offene Beiträge     | members WHERE is_active AND NOT fee_paid_current_year | "12 noch nicht bezahlt"            |
-| Kassenstand         | SUM aus transactions WHERE fiscal_year_id = aktiv     | "4.823,50 € gesamt"                |
-| Nächster Geburtstag | members, nächste 30 Tage nach Monat+Tag               | "Müller, Hans — 15.07. (72 Jahre)" |
+| Card | Datenquelle | Inhalt |
+|---|---|---|
+| Mitglieder | members WHERE is_active = true | "93 aktiv — Ø Alter: 71 Jahre" |
+| Offene Beiträge | members WHERE is_active AND NOT fee_paid_current_year | "12 noch nicht bezahlt" |
+| Kassenstand | SUM aus transactions WHERE fiscal_year_id = aktiv | "4.823,50 € gesamt" |
+| Nächster Geburtstag | members, nächste 30 Tage nach Monat+Tag | "Müller, Hans — 15.07. (72 Jahre)" |
 
 Durchschnittsalter berechnen:
-
 ```ts
 const avgAge = Math.round(members.reduce((sum, m) => sum + calcAge(m.birthDate), 0) / members.length);
 ```
@@ -829,15 +1008,14 @@ const avgAge = Math.round(members.reduce((sum, m) => sum + calcAge(m.birthDate),
 #### Mittlerer Bereich — Altersverteilung (Recharts BarChart)
 
 Altersgruppen in 5-Jahres-Schritten von 60 bis 110+:
-
 - Gruppen: "60–64", "65–69", "70–74", "75–79", "80–84", "85–89", "90–94", "95–99", "100+"
 - X-Achse: Altersgruppe, Y-Achse: Anzahl Mitglieder
 - Tooltip: "3 Mitglieder im Alter 70–74"
-- Unter dem Chart: Zeile mit Statistik: "Mitglieder: 93 — Durchschnittsalter: 71 Jahre — Jüngstes Mitglied: 62 — Ältestes Mitglied: 89"
+- Unter dem Chart: Zeile mit Statistik:
+  "Mitglieder: 93 — Durchschnittsalter: 71 Jahre — Jüngstes Mitglied: 62 — Ältestes Mitglied: 89"
 - Nur aktive Mitglieder mit bekanntem Geburtsdatum einbeziehen
 
 Gruppierungslogik:
-
 ```ts
 const groups: Record<string, number> = {
   "60–64": 0, "65–69": 0, "70–74": 0, "75–79": 0,
@@ -854,13 +1032,11 @@ members.forEach(m => {
 #### Unterer Bereich — zwei Spalten
 
 Links: Einnahmen vs. Ausgaben laufendes Jahr
-
 - Kleines Recharts BarChart nach Monat (Jan–Dez)
 - Zwei Balken je Monat: Einnahmen (grün) / Ausgaben (rot)
 - Daten aus transactions WHERE fiscal_year_id = aktives Jahr
 
 Rechts: Nächste Geburtstage
-
 - Liste der nächsten 5 Geburtstage in den kommenden 30 Tagen
 - Anzeige: Name, Datum, wird X Jahre alt
 - Geburtstag berechnen nach Monat+Tag unabhängig vom Jahr
@@ -868,7 +1044,6 @@ Rechts: Nächste Geburtstage
 #### API-Route
 
 GET /api/dashboard — gibt zurück:
-
 ```ts
 {
   memberCount: number,
@@ -883,7 +1058,7 @@ GET /api/dashboard — gibt zurück:
 }
 ```
 
-------
+---
 
 ### 3.2 EÜR-Seite (/reports/euer)
 
@@ -922,7 +1097,6 @@ Summe Einnahmen       2.790,00 €      Summe Ausgaben     1.045,00 €
 #### API-Route
 
 GET /api/reports/euer?fiscalYearId=X — gibt zurück:
-
 ```ts
 {
   income: { accountNumber: number; accountName: string; total: number }[],
@@ -933,7 +1107,7 @@ GET /api/reports/euer?fiscalYearId=X — gibt zurück:
 }
 ```
 
-------
+---
 
 ### 3.3 Offene Posten (/reports/open-items)
 
@@ -945,12 +1119,13 @@ Mitglieder die im aktiven Jahr den Beitrag noch nicht bezahlt haben.
 
 Tabelle:
 
-| Name           | Eingetreten | Mitgliedsjahre | Funktion |
-| -------------- | ----------- | -------------- | -------- |
-| Bauer, Gertrud | 01.01.2015  | 11 Jahre       | M        |
-| Fischer, Klaus | 01.03.2019  | 7 Jahre        | M        |
+| Name | Eingetreten | Mitgliedsjahre | Funktion |
+|---|---|---|---|
+| Bauer, Gertrud | 01.01.2015 | 11 Jahre | M |
+| Fischer, Klaus | 01.03.2019 | 7 Jahre | M |
 
-Fußzeile: "12 Mitglieder mit offenem Beitrag" Optional: "Gesamtbetrag: 240,00 €" wenn settings-Key member_fee vorhanden
+Fußzeile: "12 Mitglieder mit offenem Beitrag"
+Optional: "Gesamtbetrag: 240,00 €" wenn settings-Key member_fee vorhanden
 
 #### Regeln
 
@@ -961,12 +1136,12 @@ Fußzeile: "12 Mitglieder mit offenem Beitrag" Optional: "Gesamtbetrag: 240,00 �
 
 #### Settings-Key (optional)
 
-member_fee = "20.00" (Beitragshöhe in Euro, für Gesamtbetragsberechnung) In settings-Tabelle eintragen wenn gewünscht.
+member_fee = "20.00" (Beitragshöhe in Euro, für Gesamtbetragsberechnung)
+In settings-Tabelle eintragen wenn gewünscht.
 
 #### API-Route
 
 GET /api/reports/open-items — gibt zurück:
-
 ```ts
 {
   members: {
@@ -978,7 +1153,7 @@ GET /api/reports/open-items — gibt zurück:
 }
 ```
 
-------
+---
 
 ### 3.4 Kontenblatt (/reports/account-ledger)
 
@@ -1011,7 +1186,6 @@ Summe Einnahmen: 1.860,00 €   Summe Ausgaben: 0,00 €   Endsaldo: 1.860,00 �
 #### API-Route
 
 GET /api/reports/account-ledger?internalAccountId=X&fiscalYearId=Y — gibt zurück:
-
 ```ts
 {
   account: { number: number; name: string },
@@ -1026,7 +1200,7 @@ GET /api/reports/account-ledger?internalAccountId=X&fiscalYearId=Y — gibt zur�
 }
 ```
 
-------
+---
 
 ### 3.5 Monatsbericht (/reports/monthly)
 
@@ -1066,7 +1240,6 @@ Datum        Belegnr.    Beschreibung         Konto   Einnahme   Ausgabe
 #### API-Route
 
 GET /api/reports/monthly?year=2026&month=6 — gibt zurück:
-
 ```ts
 {
   totalIncome: number,
@@ -1081,13 +1254,14 @@ GET /api/reports/monthly?year=2026&month=6 — gibt zurück:
 }
 ```
 
-------
+---
 
-------
+---
 
 ## Phase 4 — Reiseverwaltung (/travel)
 
-Umfragen werden selbst gebaut (keine externe Library) — Tabellen surveys, survey_options, survey_votes bereits im Schema vorhanden.
+Umfragen werden selbst gebaut (keine externe Library) — Tabellen surveys,
+survey_options, survey_votes bereits im Schema vorhanden.
 
 ### Datenmodell — Ergänzungen zur bestehenden travels-Tabelle
 
@@ -1111,7 +1285,8 @@ Bestehende Felder bleiben: name, total_cost, own_contribution, status, notes.
 | is_registered | boolean DEFAULT true  | Angemeldet   |
 | is_paid       | boolean DEFAULT false | Bezahlt      |
 
-Bestehende Felder paid_amount und paid_at bleiben (ergänzend). Regel: member_id ODER guest_id gesetzt — nie beide (CHECK-Constraint bleibt).
+Bestehende Felder paid_amount und paid_at bleiben (ergänzend).
+Regel: member_id ODER guest_id gesetzt — nie beide (CHECK-Constraint bleibt).
 
 ### Status-Werte für travels
 
@@ -1136,19 +1311,18 @@ Bestehende Felder paid_amount und paid_at bleiben (ergänzend). Regel: member_id
 
 Tabelle mit einer Zeile pro Reise, gefiltert nach Geschäftsjahr (Dropdown):
 
-| Spalte             | Inhalt                                       |
-| ------------------ | -------------------------------------------- |
-| Veranstaltung      | Name + Status-Badge (geplant/bestätigt/etc.) |
-| Zeitraum           | 15.06.–18.06.2026                            |
-| Min / Max          | 20 / 40                                      |
-| Angemeldet         | 27 (COUNT aus travel_participants)           |
-| Noch nicht bezahlt | 8 (angemeldet minus bezahlt)                 |
-| Aktionen           | Detail / Bearbeiten                          |
+| Spalte             | Inhalt                                           |
+| ------------------ | ------------------------------------------------ |
+| Veranstaltung      | Name + Status-Badge (geplant/bestätigt/etc.)     |
+| Zeitraum           | 15.06.–18.06.2026                                |
+| Min / Max          | 20 / 40                                          |
+| Angemeldet         | 27 (COUNT aus travel_participants)               |
+| Noch nicht bezahlt | 8 (angemeldet minus bezahlt)                     |
+| Aktionen           | Detail / Bearbeiten                              |
 
 ### Formular neue/bearbeitete Reise
 
 Felder:
-
 - Name der Veranstaltung (Pflicht)
 - Datum von / Datum bis
 - Mindestanzahl Teilnehmer / Maximale Anzahl Teilnehmer
@@ -1162,7 +1336,6 @@ Felder:
 ### Detail-Seite /travel/[id]
 
 OBERER BEREICH — Reise-Info:
-
 - Alle Felder anzeigen (Name, Zeitraum, Beschreibung, Preis, Status)
 - Fortschrittsbalken: Angemeldete / Max. Teilnehmer (z.B. 27/40)
 - Kennzahlen-Cards: Angemeldet | Bezahlt | Noch offen | Einnahmen gesamt
@@ -1170,10 +1343,10 @@ OBERER BEREICH — Reise-Info:
 
 UNTERER BEREICH — Teilnehmerliste:
 
-| Name         | Typ      | Angemeldet | Bezahlt  | Aktionen  |
-| ------------ | -------- | ---------- | -------- | --------- |
-| Müller, Hans | Mitglied | Checkbox   | Checkbox | Entfernen |
-| Meier, Kurt  | Gast     | Checkbox   | Checkbox | Entfernen |
+| Name         | Typ      | Angemeldet | Bezahlt  | Aktionen |
+| ------------ | -------- | ---------- | -------- | -------- |
+| Müller, Hans | Mitglied | Checkbox   | Checkbox | Entfernen|
+| Meier, Kurt  | Gast     | Checkbox   | Checkbox | Entfernen|
 
 - Checkboxen direkt togglebar (PATCH /api/travel/[id]/participants/[pid])
 - Entfernen mit ConfirmModal (nur admin)
@@ -1210,7 +1383,6 @@ UNTERER BEREICH — Teilnehmerliste:
 Übersicht: Liste aller Umfragen mit Status, Abstimmungsende, Anzahl Stimmen.
 
 Detail-Seite /travel/surveys/[id]:
-
 - Titel + Status
 - Optionen als Radiobuttons (nur eine Stimme pro Mitglied)
 - Abstimmen-Button (nur wenn status = 'open' und noch nicht abgestimmt)
@@ -1219,11 +1391,19 @@ Detail-Seite /travel/surveys/[id]:
 
 ### SQL für Phase 4 — Datenbankänderungen (in Neon ausführen)
 
-ALTER TABLE travels ADD COLUMN date_from date, ADD COLUMN date_to date, ADD COLUMN min_participants integer DEFAULT 0, ADD COLUMN max_participants integer, ADD COLUMN description text, ADD COLUMN fiscal_year_id integer REFERENCES fiscal_years(id);
+ALTER TABLE travels
+  ADD COLUMN date_from date,
+  ADD COLUMN date_to date,
+  ADD COLUMN min_participants integer DEFAULT 0,
+  ADD COLUMN max_participants integer,
+  ADD COLUMN description text,
+  ADD COLUMN fiscal_year_id integer REFERENCES fiscal_years(id);
 
-ALTER TABLE travel_participants ADD COLUMN is_registered boolean NOT NULL DEFAULT true, ADD COLUMN is_paid boolean NOT NULL DEFAULT false;
+ALTER TABLE travel_participants
+  ADD COLUMN is_registered boolean NOT NULL DEFAULT true,
+  ADD COLUMN is_paid boolean NOT NULL DEFAULT false;
 
-------
+---
 
 ## Phase 5 — CI/CD + Vercel-Deployment + Domain + SSL
 
@@ -1235,28 +1415,29 @@ ALTER TABLE travel_participants ADD COLUMN is_registered boolean NOT NULL DEFAUL
 - BETTER_AUTH_URL auf https://kasse.scschmalfeld.org setzen
 - Neon: Connection Pooling für Produktiv-Betrieb aktivieren
 
-------
+---
 
 ## Phase 6 — Tests + Testdaten
 
-Ansatz: Manuelles Testen zuerst, automatisierte Tests optional später. Reihenfolge: Test-Accounts anlegen → Seed-Script → Manuellen Testplan durcharbeiten → Fehler fixen.
+Ansatz: Manuelles Testen zuerst, automatisierte Tests optional später.
+Reihenfolge: Test-Accounts anlegen → Seed-Script → Manuellen Testplan durcharbeiten → Fehler fixen.
 
-------
+---
 
 ### 6.1 Test-Accounts anlegen (manuell in /users)
 
 Vier Test-Accounts anlegen — je einen pro Rolle:
 
-| Account         | Rolle   | Benutzername | Passwort  |
-| --------------- | ------- | ------------ | --------- |
-| Test Kassenwart | admin   | test.admin   | Test1234! |
-| Test Vorstand   | board   | test.board   | Test1234! |
-| Test Prüfer     | auditor | test.auditor | Test1234! |
-| Test Mitglied   | member  | test.member  | Test1234! |
+| Account        | Rolle   | Benutzername | Passwort      |
+| -------------- | ------- | ------------ | ------------- |
+| Test Kassenwart| admin   | test.admin   | Test1234!     |
+| Test Vorstand  | board   | test.board   | Test1234!     |
+| Test Prüfer    | auditor | test.auditor | Test1234!     |
+| Test Mitglied  | member  | test.member  | Test1234!     |
 
 Alle Test-Accounts nach dem Testen wieder deaktivieren (nicht löschen).
 
-------
+---
 
 ### 6.2 Seed-Script (scripts/seed-test-data.ts)
 
@@ -1265,14 +1446,12 @@ Claude Code soll dieses Script anlegen. Es befüllt die DB mit Testdaten:
 #### Was das Script anlegt
 
 **Test-Mitglieder (10 Stück):**
-
 - Verschiedene Altersgruppen (60–90 Jahre)
 - Verschiedene Funktionen (M, 1.V, KW, B1, KP1)
 - Mix aus bezahlt/nicht bezahlt
 - Alle mit Präfix "TEST-" im Nachnamen (leicht zu erkennen und zu löschen)
 
 **Test-Buchungen (20 Stück):**
-
 - Verteilt über Jan–Jun des aktiven Jahres
 - Mix aus Einnahmen und Ausgaben
 - Verschiedene interne Konten
@@ -1280,14 +1459,12 @@ Claude Code soll dieses Script anlegen. Es befüllt die DB mit Testdaten:
 - 2 Stornos enthalten
 
 **Test-Reise (1 Stück):**
-
 - Name: "TEST-Reise Ostsee 2026"
 - Status: confirmed
 - 5 Teilnehmer (3 bezahlt, 2 offen)
 - Mix aus Mitgliedern und 1 Gast
 
 **Test-Umfrage (1 Stück):**
-
 - Titel: "TEST-Umfrage Reiseziel 2027"
 - Status: open
 - 3 Optionen, 5 Stimmen verteilt
@@ -1307,41 +1484,39 @@ npx tsx scripts/cleanup-test-data.ts
 ```
 
 Claude Code soll auch cleanup-test-data.ts anlegen:
-
 - Löscht alle Einträge mit "TEST-" Präfix
 - Löscht Test-Buchungen (erkennbar an Belegnummer-Präfix "TEST-")
 - Löscht Test-Reise + Teilnehmer
 - Löscht Test-Umfrage + Votes
 - Deaktiviert Test-User (löscht sie nicht)
 
-------
+---
 
 ### 6.3 Manueller Testplan
 
 #### Block 1 — Grundfunktionen (ca. 30 Min.)
 
-| Test                   | Schritte                       | Erwartetes Ergebnis     |
-| ---------------------- | ------------------------------ | ----------------------- |
-| Login Benutzername     | test.admin + Passwort eingeben | Weiterleitung Dashboard |
-| Login E-Mail           | E-Mail-Adresse + Passwort      | Weiterleitung Dashboard |
-| Login falsche Daten    | Falsches Passwort              | Fehlermeldung sichtbar  |
-| Abmelden               | Button "Abmelden"              | Weiterleitung Login     |
-| Direktaufruf geschützt | /dashboard ohne Login aufrufen | Weiterleitung Login     |
-| Direktaufruf pending   | User ohne approved aufrufen    | /pending Seite          |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
+| Login Benutzername | test.admin + Passwort eingeben | Weiterleitung Dashboard |
+| Login E-Mail | E-Mail-Adresse + Passwort | Weiterleitung Dashboard |
+| Login falsche Daten | Falsches Passwort | Fehlermeldung sichtbar |
+| Abmelden | Button "Abmelden" | Weiterleitung Login |
+| Direktaufruf geschützt | /dashboard ohne Login aufrufen | Weiterleitung Login |
+| Direktaufruf pending | User ohne approved aufrufen | /pending Seite |
 
 #### Block 2 — Rollen & Berechtigungen (ca. 45 Min.)
 
 Mit jedem Test-Account einloggen und prüfen:
 
-| Rolle   | Darf sehen                    | Darf NICHT sehen/tun          |
-| ------- | ----------------------------- | ----------------------------- |
-| admin   | Alles inkl. /users            | —                             |
-| board   | Alle Seiten lesend            | Buttons Speichern/Neu/Löschen |
-| auditor | Buchungen, Konten, Mitglieder | Bearbeiten, /users            |
-| member  | Nur eigene Daten              | Alle anderen Seiten           |
+| Rolle | Darf sehen | Darf NICHT sehen/tun |
+| ----- | ---------- | -------------------- |
+| admin | Alles inkl. /users | — |
+| board | Alle Seiten lesend | Buttons Speichern/Neu/Löschen |
+| auditor | Buchungen, Konten, Mitglieder | Bearbeiten, /users |
+| member | Nur eigene Daten | Alle anderen Seiten |
 
 Konkret testen:
-
 - board: Buchungsliste öffnen → keine "Neu"-Buttons sichtbar
 - auditor: Mitgliederliste öffnen → nur Lesen, kein Bearbeiten
 - member: /dashboard → nur eigene Daten, kein Menüpunkt Buchungen
@@ -1349,66 +1524,66 @@ Konkret testen:
 
 #### Block 3 — Mitgliederverwaltung (ca. 20 Min.)
 
-| Test             | Schritte                          | Erwartetes Ergebnis            |
-| ---------------- | --------------------------------- | ------------------------------ |
-| Neues Mitglied   | /members/neu → Formular ausfüllen | In Liste sichtbar              |
-| Bearbeiten       | Mitglied öffnen → bearbeiten      | Änderungen gespeichert         |
-| Beitrag bezahlt  | Toggle setzen                     | Badge wechselt auf "Bezahlt"   |
-| Deaktivieren     | Mitglied deaktivieren             | Verschwindet aus aktiver Liste |
-| Filter           | Filter "Nur Aktive"               | Deaktivierte nicht sichtbar    |
-| Suche            | Namen suchen                      | Korrekte Ergebnisse            |
-| Jubiläumsliste   | PDF aufrufen                      | PDF öffnet korrekt             |
-| Geburtstagsliste | PDF aufrufen                      | PDF öffnet korrekt             |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
+| Neues Mitglied | /members/neu → Formular ausfüllen | In Liste sichtbar |
+| Bearbeiten | Mitglied öffnen → bearbeiten | Änderungen gespeichert |
+| Beitrag bezahlt | Toggle setzen | Badge wechselt auf "Bezahlt" |
+| Deaktivieren | Mitglied deaktivieren | Verschwindet aus aktiver Liste |
+| Filter | Filter "Nur Aktive" | Deaktivierte nicht sichtbar |
+| Suche | Namen suchen | Korrekte Ergebnisse |
+| Jubiläumsliste | PDF aufrufen | PDF öffnet korrekt |
+| Geburtstagsliste | PDF aufrufen | PDF öffnet korrekt |
 
 #### Block 4 — Buchungen (ca. 45 Min.)
 
-| Test            | Schritte                     | Erwartetes Ergebnis              |
-| --------------- | ---------------------------- | -------------------------------- |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
 | Einnahme buchen | Neu → Einnahme → alle Felder | In Liste sichtbar, Saldo korrekt |
-| Ausgabe buchen  | Neu → Ausgabe → alle Felder  | In Liste sichtbar, Saldo korrekt |
-| Storno          | Buchung öffnen → Stornieren  | Storno-Buchung angelegt          |
-| Filter Jahr     | Jahresfilter wechseln        | Nur Buchungen des Jahres         |
-| Filter Konto    | Ext. Konto filtern           | Nur Buchungen dieses Kontos      |
-| Belegnummer     | Neue Buchung                 | Format JJJJ-NNNN korrekt         |
-| Scan-Beleg      | Pfad eintragen               | Büroklammer-Icon in Liste        |
-| Kassenbuch PDF  | PDF generieren               | Landscape, Monatsblöcke korrekt  |
+| Ausgabe buchen | Neu → Ausgabe → alle Felder | In Liste sichtbar, Saldo korrekt |
+| Storno | Buchung öffnen → Stornieren | Storno-Buchung angelegt |
+| Filter Jahr | Jahresfilter wechseln | Nur Buchungen des Jahres |
+| Filter Konto | Ext. Konto filtern | Nur Buchungen dieses Kontos |
+| Belegnummer | Neue Buchung | Format JJJJ-NNNN korrekt |
+| Scan-Beleg | Pfad eintragen | Büroklammer-Icon in Liste |
+| Kassenbuch PDF | PDF generieren | Landscape, Monatsblöcke korrekt |
 
 #### Block 5 — Auswertungen (ca. 20 Min.)
 
-| Test                 | Schritte                            | Erwartetes Ergebnis                      |
-| -------------------- | ----------------------------------- | ---------------------------------------- |
-| Dashboard Kennzahlen | /dashboard aufrufen                 | Mitgliederzahl, Ø Alter korrekt          |
-| Altersdiagramm       | /dashboard                          | Balken für Altersgruppen sichtbar        |
-| EÜR                  | /reports/euer                       | Einnahmen/Ausgaben stimmen mit Buchungen |
-| Offene Posten        | /reports/open-items                 | Nur Mitglieder ohne bezahlten Beitrag    |
-| Kontenblatt          | /reports/account-ledger → Konto 103 | Alle Beitragsbuchungen, kum. Saldo       |
-| Monatsbericht        | /reports/monthly → aktueller Monat  | Zahlen korrekt                           |
-| EÜR PDF              | PDF-Button                          | Portrait-PDF öffnet                      |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
+| Dashboard Kennzahlen | /dashboard aufrufen | Mitgliederzahl, Ø Alter korrekt |
+| Altersdiagramm | /dashboard | Balken für Altersgruppen sichtbar |
+| EÜR | /reports/euer | Einnahmen/Ausgaben stimmen mit Buchungen |
+| Offene Posten | /reports/open-items | Nur Mitglieder ohne bezahlten Beitrag |
+| Kontenblatt | /reports/account-ledger → Konto 103 | Alle Beitragsbuchungen, kum. Saldo |
+| Monatsbericht | /reports/monthly → aktueller Monat | Zahlen korrekt |
+| EÜR PDF | PDF-Button | Portrait-PDF öffnet |
 
 #### Block 6 — Reisen & Umfragen (ca. 20 Min.)
 
-| Test                  | Schritte                         | Erwartetes Ergebnis             |
-| --------------------- | -------------------------------- | ------------------------------- |
-| Reise anlegen         | /travel/neu → Formular           | In Übersicht sichtbar           |
-| Teilnehmer suchen     | Suchfeld → Name eingeben         | Members + Guests in Ergebnissen |
-| Teilnehmer hinzufügen | Mitglied anklicken               | In Teilnehmerliste              |
-| Bezahlt markieren     | Checkbox togglen                 | Sofort gespeichert              |
-| Gast hinzufügen       | Gast in Suche                    | In Liste mit Typ "Gast"         |
-| Umfrage anlegen       | /travel/surveys/neu              | In Übersicht sichtbar           |
-| Abstimmen             | Als member einloggen → abstimmen | Stimme gespeichert              |
-| Auswertung            | Als admin → Diagramm             | Balken mit Stimmenanzahl        |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
+| Reise anlegen | /travel/neu → Formular | In Übersicht sichtbar |
+| Teilnehmer suchen | Suchfeld → Name eingeben | Members + Guests in Ergebnissen |
+| Teilnehmer hinzufügen | Mitglied anklicken | In Teilnehmerliste |
+| Bezahlt markieren | Checkbox togglen | Sofort gespeichert |
+| Gast hinzufügen | Gast in Suche | In Liste mit Typ "Gast" |
+| Umfrage anlegen | /travel/surveys/neu | In Übersicht sichtbar |
+| Abstimmen | Als member einloggen → abstimmen | Stimme gespeichert |
+| Auswertung | Als admin → Diagramm | Balken mit Stimmenanzahl |
 
 #### Block 7 — Einstellungen (ca. 10 Min.)
 
-| Test               | Schritte                    | Erwartetes Ergebnis                   |
-| ------------------ | --------------------------- | ------------------------------------- |
-| Vereinsname ändern | Settings → speichern        | Navigation + Login zeigen neuen Namen |
-| Modul deaktivieren | Toggle aus                  | Menüpunkt verschwindet                |
-| Modul reaktivieren | Toggle ein                  | Menüpunkt erscheint wieder            |
-| Benutzerverwaltung | /users → neuen User anlegen | User in Liste sichtbar                |
-| Freischalten       | User freischalten           | approved = true                       |
+| Test | Schritte | Erwartetes Ergebnis |
+| ---- | -------- | ------------------- |
+| Vereinsname ändern | Settings → speichern | Navigation + Login zeigen neuen Namen |
+| Modul deaktivieren | Toggle aus | Menüpunkt verschwindet |
+| Modul reaktivieren | Toggle ein | Menüpunkt erscheint wieder |
+| Benutzerverwaltung | /users → neuen User anlegen | User in Liste sichtbar |
+| Freischalten | User freischalten | approved = true |
 
-------
+---
 
 ### 6.4 Fehler dokumentieren
 
@@ -1425,20 +1600,21 @@ Browser-Konsole: [Fehlermeldung hier]
 
 Dann Claude Code den Fehler beheben lassen.
 
-------
+---
 
 ### 6.5 Produktiv vs. Lokal testen
 
 Wichtig: Beide Umgebungen testen!
 
-| Umgebung  | URL                            | DB                 |
-| --------- | ------------------------------ | ------------------ |
-| Lokal     | http://localhost:3000          | Neon (gleiche DB!) |
+| Umgebung | URL | DB |
+| -------- | --- | -- |
+| Lokal | http://localhost:3000 | Neon (gleiche DB!) |
 | Produktiv | https://kasse.scschmalfeld.org | Neon (gleiche DB!) |
 
-Da beide auf dieselbe Neon-DB zeigen: Testdaten die lokal angelegt werden sind auch produktiv sichtbar. Cleanup-Script nach dem Testen ausführen!
+Da beide auf dieselbe Neon-DB zeigen: Testdaten die lokal angelegt werden
+sind auch produktiv sichtbar. Cleanup-Script nach dem Testen ausführen!
 
-------
+---
 
 ## Phase 7 — PWA (next-pwa)
 
@@ -1449,7 +1625,7 @@ Da beide auf dieselbe Neon-DB zeigen: Testdaten die lokal angelegt werden sind a
 - Icons in verschiedenen Größen (192x192, 512x512)
 - Erst nach stabilem Produktiv-Betrieb umsetzen
 
-------
+---
 
 ## Phase 8 — Dokumentation
 
@@ -1458,7 +1634,7 @@ Da beide auf dieselbe Neon-DB zeigen: Testdaten die lokal angelegt werden sind a
 - API-Dokumentation (optional)
 - CLAUDE.md aktuell halten als Entwickler-Referenz
 
-------
+---
 
 ## Dateistruktur
 
@@ -1481,6 +1657,7 @@ src/
       transactions/
         page.tsx
         neu/page.tsx
+        sammel/page.tsx         <- Sammelbuchung
       receipts/
         page.tsx
       reports/
@@ -1506,6 +1683,7 @@ src/
       accounts/...
       fiscal-years/...
       transactions/...
+        sammel/route.ts         <- POST Sammelbuchung
       receipts/...
       reports/...
       users/                        <- Phase 0.6a
@@ -1572,25 +1750,25 @@ src/
 
 ## Datenbank-Tabellen
 
-| Tabelle             | Beschreibung                                                 |
-| ------------------- | ------------------------------------------------------------ |
-| members             | Mitglieder mit Funktion (M/1.V/2.V/KW/SW/KS/B1/B2/B3/KP1/KP2) |
-| guests              | Gäste (id, last_name, first_name, contact_info, notes)       |
-| external_accounts   | Externe Konten max. 5, current_balance nicht mehr aktuell!   |
-| internal_accounts   | Interne Konten, Nummernkreis konfigurierbar (default 100-999) |
-| fiscal_years        | Buchungsjahre (label, date_from, date_to, is_active, is_closed) |
-| transactions        | Buchungen (id != receipt_number!)                            |
-| receipts            | Scan-Belege: file_path + storage_type (local/nas/cloud)      |
+| Tabelle             | Beschreibung                                                          |
+| ------------------- | --------------------------------------------------------------------- |
+| members             | Mitglieder mit Funktion (M/1.V/2.V/KW/SW/KS/B1/B2/B3/KP1/KP2)      |
+| guests              | Gäste (id, last_name, first_name, contact_info, notes)               |
+| external_accounts   | Externe Konten max. 5, current_balance nicht mehr aktuell!           |
+| internal_accounts   | Interne Konten, Nummernkreis konfigurierbar (default 100-999)        |
+| fiscal_years        | Buchungsjahre (label, date_from, date_to, is_active, is_closed)      |
+| transactions        | Buchungen (id != receipt_number!)                                     |
+| receipts            | Scan-Belege: file_path + storage_type (local/nas/cloud)              |
 | travels             | Reisen (erweitert um date_from/to, min/max_participants, description) |
-| travel_participants | Teilnehmer (is_registered + is_paid als Booleans)            |
-| surveys             | Umfragen für Reisewahl (selbst gebaut)                       |
-| survey_options      | Umfrage-Optionen                                             |
-| survey_votes        | Abstimmungen (je Mitglied eine Stimme)                       |
-| settings            | App-Einstellungen (key/value), inkl. setup_complete          |
+| travel_participants | Teilnehmer (is_registered + is_paid als Booleans)                    |
+| surveys             | Umfragen für Reisewahl (selbst gebaut)                               |
+| survey_options      | Umfrage-Optionen                                                      |
+| survey_votes        | Abstimmungen (je Mitglied eine Stimme)                               |
+| settings            | App-Einstellungen (key/value), inkl. setup_complete                  |
 | user                | Better Auth User (role, username, approved, function — E-Mail optional) |
-| session             | Better Auth Session                                          |
-| account             | Better Auth Account                                          |
-| verification        | Better Auth Verification                                     |
+| session             | Better Auth Session                                                   |
+| account             | Better Auth Account                                                   |
+| verification        | Better Auth Verification                                              |
 
 ### Wichtige Spalten transactions
 
@@ -1610,7 +1788,16 @@ src/
 - getSettings() in src/lib/utils/settings.ts gibt AppSettings zurück
 - SettingsContext in src/context/SettingsContext.tsx — überall via useSettings() verfügbar
 - Feature-Flags: settings.features.members usw. — steuern Navigation + Seitenzugriff
-- Aktuelle Keys: app_name, club_name, club_subtitle, module_members, module_guests, module_accounts, module_transactions, module_travel, module_reports, module_receipts, internal_accounts_min (default 100), internal_accounts_max (default 999), receipt_default_path, setup_complete (false/true), member_fee (optional, Beitragshöhe in Euro), smtp_host, smtp_port, smtp_user, smtp_password (AES-256 verschlüsselt), smtp_from, smtp_from_name
+- Aktuelle Keys:
+  app_name, club_name, club_subtitle,
+  module_members, module_guests, module_accounts, module_transactions,
+  module_travel, module_reports, module_receipts,
+  internal_accounts_min (default 100), internal_accounts_max (default 999),
+  receipt_default_path,
+  setup_complete (false/true),
+  member_fee (optional, Beitragshöhe in Euro),
+  smtp_host, smtp_port, smtp_user, smtp_password (AES-256 verschlüsselt),
+  smtp_from, smtp_from_name
 
 ## Buchungen — wichtige Konzepte
 
@@ -1629,7 +1816,8 @@ Doppik: Jede Buchung hat ein externes Konto (Barkasse/Bank) und ein internes Kon
 ### Salden — WICHTIG
 
 - current_balance in external_accounts wird NICHT mehr aktualisiert (veraltet, ignorieren)
-- Alle Salden werden aus Buchungen berechnet — immer gefiltert nach aktivem/gewähltem Buchungsjahr: SUM(CASE WHEN direction='in' THEN amount ELSE -amount END) WHERE fiscal_year_id = X
+- Alle Salden werden aus Buchungen berechnet — immer gefiltert nach aktivem/gewähltem Buchungsjahr:
+  SUM(CASE WHEN direction='in' THEN amount ELSE -amount END) WHERE fiscal_year_id = X
 - Jahresabschluss-Prozess:
   1. Buchungsjahr abschließen (isClosed = true)
   2. Übertrag erstellen → POST /api/fiscal-years/[id]/carry-over mit {targetFyId}
@@ -1648,28 +1836,52 @@ Doppik: Jede Buchung hat ein externes Konto (Barkasse/Bank) und ein internes Kon
 Drei Varianten in src/lib/data/internalAccountsDefault.ts:
 
 ### Variante A — "Seniorenclub" (accountsSeniorenclub)
+Basiert auf Kontenstruktur Seniorenclub Schmalfeld e.V.
+Geeignet für Vereine mit Ausflügen, Reisen, Kaffeenachmittagen, Kulturveranstaltungen.
 
-Basiert auf Kontenstruktur Seniorenclub Schmalfeld e.V. Geeignet für Vereine mit Ausflügen, Reisen, Kaffeenachmittagen, Kulturveranstaltungen.
-
-100-Übertrag Vorjahr Konto, 101-Bargeld, 102-Beitrag Vorjahre, 103-Beitrag lfd.Jahr, 104-Beitrag nächstes Jahr, 105-Rechnungsabgrenzung, 106-Getränke/Wurst, 107-Verkauf, 108-Sonstige Einnahmen, 109-Spenden(E), 110-Zuschuss Gemeinde, 120-Zuschuss Dritte, 130-Essen Februar, 140/150-Ausfahrt 1/2, 160/170-Reise 1/2 Eigenanteil, 180/190-Reise 1/2 Sonstige, 199-SoPo1, 200-Kaffeenachmittag, 201-Geburtstag/Jubiläum, 202-Beerdigung, 203-Sonstige Ausgaben, 204-Spenden(A), 205-Ehrungen, 210-MTA Müritz, 220-Grillfest, 230-Kinonachmittag, 240-Essen 25.01.2025, 250-SoPo4, 299-SoPo5, 400-SoPo6, 500-Durchlaufende Posten, 600-Kontoführungsgebühren, 800-Kassendifferenzen, 997-Umbuchung Spar/Konto, 998-Umbuchung Konto/Bar, 999-Storno
+100-Übertrag Vorjahr Konto, 101-Bargeld, 102-Beitrag Vorjahre, 103-Beitrag lfd.Jahr,
+104-Beitrag nächstes Jahr, 105-Rechnungsabgrenzung, 106-Getränke/Wurst, 107-Verkauf,
+108-Sonstige Einnahmen, 109-Spenden(E), 110-Zuschuss Gemeinde, 120-Zuschuss Dritte,
+130-Essen Februar, 140/150-Ausfahrt 1/2, 160/170-Reise 1/2 Eigenanteil,
+180/190-Reise 1/2 Sonstige, 199-SoPo1, 200-Kaffeenachmittag, 201-Geburtstag/Jubiläum,
+202-Beerdigung, 203-Sonstige Ausgaben, 204-Spenden(A), 205-Ehrungen, 210-MTA Müritz,
+220-Grillfest, 230-Kinonachmittag, 240-Essen 25.01.2025, 250-SoPo4, 299-SoPo5,
+400-SoPo6, 500-Durchlaufende Posten, 600-Kontoführungsgebühren, 800-Kassendifferenzen,
+997-Umbuchung Spar/Konto, 998-Umbuchung Konto/Bar, 999-Storno
 
 ### Variante B — "Allgemein klein" (accountsAllgemein)
+Generisch für beliebige kleine Vereine. Keine vereinsspezifischen Konten.
+Geeignet für Sportvereine, Kulturvereine, Fördervereine, Elternvereine usw.
 
-Generisch für beliebige kleine Vereine. Keine vereinsspezifischen Konten. Geeignet für Sportvereine, Kulturvereine, Fördervereine, Elternvereine usw.
-
-100-Übertrag Bankkonten, 101-Übertrag Barkasse, 102-Beiträge Vorjahre, 103-Beiträge lfd.Jahr, 104-Beiträge nächstes Jahr, 105-Rechnungsabgrenzung, 106-Einnahmen Veranstaltungen, 107-Einnahmen Verkauf, 108-Sonstige Einnahmen, 109-Spenden(E), 110-Zuschüsse öffentlich, 111-Zuschüsse Dritte/Sponsoren, 112-Versicherungserstattungen, 113-Zinserträge, 130/140/150-Veranstaltung 1/2/3, 160-Reise Eigenanteil, 170-Reise Kosten, 200-Vereinsveranstaltungen, 201-Ehrungen/Jubiläen, 202-Mitgliederpflege, 203-Sonstige Ausgaben, 204-Spenden(A), 300-Verwaltung/Büro, 301-Öffentlichkeitsarbeit, 302-Versicherungen, 303-Miete/Raumkosten, 500-Durchlaufende Posten, 600-Kontoführungsgebühren, 700-Zinsaufwand, 800-Kassendifferenzen, 997-Umbuchung Sparkonto/Konto, 998-Umbuchung Konto/Bar, 999-Storno
+100-Übertrag Bankkonten, 101-Übertrag Barkasse, 102-Beiträge Vorjahre,
+103-Beiträge lfd.Jahr, 104-Beiträge nächstes Jahr, 105-Rechnungsabgrenzung,
+106-Einnahmen Veranstaltungen, 107-Einnahmen Verkauf, 108-Sonstige Einnahmen,
+109-Spenden(E), 110-Zuschüsse öffentlich, 111-Zuschüsse Dritte/Sponsoren,
+112-Versicherungserstattungen, 113-Zinserträge, 130/140/150-Veranstaltung 1/2/3,
+160-Reise Eigenanteil, 170-Reise Kosten, 200-Vereinsveranstaltungen,
+201-Ehrungen/Jubiläen, 202-Mitgliederpflege, 203-Sonstige Ausgaben, 204-Spenden(A),
+300-Verwaltung/Büro, 301-Öffentlichkeitsarbeit, 302-Versicherungen, 303-Miete/Raumkosten,
+500-Durchlaufende Posten, 600-Kontoführungsgebühren, 700-Zinsaufwand,
+800-Kassendifferenzen, 997-Umbuchung Sparkonto/Konto, 998-Umbuchung Konto/Bar, 999-Storno
 
 ### Variante C — CSV-Import (parseAccountsCsv)
-
 Eigener, bereits individualisierter Kontenrahmen. CSV-Datei hochladen.
 
-Format (Semikolon-getrennt, erste Zeile = Header optional): nummer;bezeichnung;typ 100;Übertrag Vorjahr;income 103;Beitrag laufendes Jahr;income 200;Ausgaben Fest;expense
+Format (Semikolon-getrennt, erste Zeile = Header optional):
+  nummer;bezeichnung;typ
+  100;Übertrag Vorjahr;income
+  103;Beitrag laufendes Jahr;income
+  200;Ausgaben Fest;expense
 
-Erlaubte Typen: income, expense, neutral, transfer, cancel Regeln: Nummer eindeutig (1-9999), Bezeichnung max. 150 Zeichen, BOM wird entfernt, Kommentarzeilen mit # werden ignoriert Nach Import: Vorschau der erkannten Konten vor dem endgültigen Speichern
+Erlaubte Typen: income, expense, neutral, transfer, cancel
+Regeln: Nummer eindeutig (1-9999), Bezeichnung max. 150 Zeichen,
+        BOM wird entfernt, Kommentarzeilen mit # werden ignoriert
+Nach Import: Vorschau der erkannten Konten vor dem endgültigen Speichern
 
 ## Vereinsfunktionen (Feld function in members)
 
-M / 1.V / 2.V / KW / SW / KS / B1 / B2 / B3 / KP1 / KP2 Default: M (Mitglied)
+M / 1.V / 2.V / KW / SW / KS / B1 / B2 / B3 / KP1 / KP2
+Default: M (Mitglied)
 
 ## Wichtige Regeln — IMMER einhalten
 
@@ -1696,7 +1908,7 @@ M / 1.V / 2.V / KW / SW / KS / B1 / B2 / B3 / KP1 / KP2 Default: M (Mitglied)
 - Dateityp wird automatisch aus Dateinamen erkannt
 - Mehrere Belege pro Buchung möglich (1:n)
 - ReceiptBadge: DaisyUI-dialog via ref.current?.showModal()
-- WSL2: Pfade werden in /api/receipts/[id]/view von C:... nach /mnt/c/... konvertiert
+- WSL2: Pfade werden in /api/receipts/[id]/view von C:\... nach /mnt/c/... konvertiert
 
 ## Muster — DaisyUI-Modal in Client-Komponenten
 
@@ -1711,8 +1923,16 @@ ref.current?.showModal();
 
 ## Umgebungsvariablen (.env.local)
 
-DATABASE_URL=postgresql://...@...neon.tech/neondb?sslmode=require BETTER_AUTH_SECRET=... BETTER_AUTH_URL=http://localhost:3000 NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000 SMTP_ENCRYPTION_KEY=32-Zeichen-zufaelliger-String-fuer-AES256
+DATABASE_URL=postgresql://...@...neon.tech/neondb?sslmode=require
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
+SMTP_ENCRYPTION_KEY=32-Zeichen-zufaelliger-String-fuer-AES256
 
-SMTP_ENCRYPTION_KEY generieren: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SMTP_ENCRYPTION_KEY generieren:
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-KEIN RESEND_API_KEY mehr — E-Mail läuft über SMTP aus der settings-Tabelle. Für Produktion (Vercel) zusätzlich: BETTER_AUTH_URL=https://app.vkeinfach.de NEXT_PUBLIC_BETTER_AUTH_URL=https://app.vkeinfach.de
+KEIN RESEND_API_KEY mehr — E-Mail läuft über SMTP aus der settings-Tabelle.
+Für Produktion (Vercel) zusätzlich:
+  BETTER_AUTH_URL=https://app.vkeinfach.de
+  NEXT_PUBLIC_BETTER_AUTH_URL=https://app.vkeinfach.de

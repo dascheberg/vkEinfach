@@ -14,8 +14,12 @@ export default async function SetupPage() {
     db.select({ id: fiscalYears.id }).from(fiscalYears),
   ]);
 
+  const clubConfigured =
+    appSettings.clubName !== "" &&
+    appSettings.clubName !== "Mein Verein";
+
   let initialStep = 1;
-  if (adminUsers.length > 0) {
+  if (clubConfigured && adminUsers.length > 0) {
     initialStep = allFiscalYears.length > 0 ? 3 : 2;
   }
 

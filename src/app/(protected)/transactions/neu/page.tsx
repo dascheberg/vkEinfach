@@ -9,7 +9,7 @@ import { getActiveFiscalYear, getNextReceiptNumber } from "@/lib/utils/transacti
 export default async function NewTransactionPage() {
   const session = await requireAuth();
   const role = (session.user as { role?: string }).role ?? "member";
-  if (role !== "admin") redirect("/transactions");
+  if (role !== "admin" && role !== "finanzen") redirect("/transactions");
 
   const activeFY = await getActiveFiscalYear();
 

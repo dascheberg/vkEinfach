@@ -10,8 +10,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [appName, setAppName] = useState("vkEinfach");
-  const [clubName, setClubName] = useState("");
+  const [appName,       setAppName]       = useState("vkEinfach");
+  const [clubName,      setClubName]      = useState("");
+  const [setupComplete, setSetupComplete] = useState(true);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -19,11 +20,12 @@ export default function LoginPage() {
       .then((d) => {
         setAppName(d.appName ?? "vkEinfach");
         setClubName(d.clubName ?? "");
+        setSetupComplete(d.setupComplete !== false);
       })
       .catch(() => {});
   }, []);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -45,7 +47,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(setupComplete ? "/dashboard" : "/setup");
   }
 
   return (
@@ -65,7 +67,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <form onSubmit={handleLogin} className="flex flex-col gap-4" suppressHydrationWarning>
             <div className="form-control">
               <label className="label">
                 <span className="label-text text-base">Benutzername oder E-Mail</span>
@@ -78,6 +80,7 @@ export default function LoginPage() {
                 required
                 autoComplete="username"
                 autoCapitalize="none"
+                suppressHydrationWarning
               />
             </div>
 
@@ -92,6 +95,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                suppressHydrationWarning
               />
             </div>
 
