@@ -172,7 +172,7 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
 
 - Next.js Projekt mit TailwindCSS v3 + DaisyUI
 - Drizzle ORM + Neon DB verbunden
-- Better Auth mit 4 Rollen (admin/board/auditor/member)
+- Better Auth mit 5 Rollen (admin/finanzen/vorstand/auditor/member)
 - Admin-User angelegt: progdieter@dascheberg.de (Rolle: admin)
 - 94 Mitglieder importiert
 - Login-Seite (dynamischer App-Name + Vereinsname)
@@ -199,10 +199,29 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
   - Vermögensaufstellung PDF (Portrait): ext. Kontensalden, Unterschriftzeile
   - Geburtstage & Jubiläen PDF (Portrait): runde Geburtstage (ab 70, x5), Mitgliedsjubiläen (ab 10J, x5)
   - Beitragsstand PDF (Portrait): alle aktiven Mitglieder, gruppiert bezahlt/offen
+  - EÜR-Berechnungslogik: neutral-Konten korrekt in Einnahmen UND Ausgaben; transfer/cancel ausgeblendet
+- CSV-Import-Modul (/settings → Tab "Daten importieren"):
+  - 5-Schritt-Wizard (ImportWizard.tsx): Typ → Datei → Zuordnung → Vorschau → Ergebnis
+  - Importtypen: Interne Konten, Benutzer, Mitglieder, Buchungen
+  - CSV-Parser (csvParser.ts): BOM-Entfernung, Auto-Delimiter (;/,), quoted fields, applyMapping()
+  - Importlogik in src/lib/utils/importAccounts.ts / importUsers.ts / importMembers.ts / importTransactions.ts
+  - API: POST /api/import/preview (erste 10 Zeilen), POST /api/import/execute (vollständiger Import)
+  - Ext. Konten-Hinweis in Schritt 2 (Buchungen): zeigt verfügbare Konten, Matching nach Name/sortOrder/id
+  - Buchungen-Import: Belegnummern fortlaufend über getNextReceiptNumber(), kein db.transaction()
+- Benutzerverwaltung /users — Phase 0.6a vollständig:
+  - Suchfeld: Debounced (300ms) Namenssuche, live clientseitig
+  - Sortierbuttons: Name / Freigabe / Rolle / Erstellt am (Toggle Richtung, aktiver Button btn-primary)
+  - Filter-Chips: Alle / Freigeschaltet / Gesperrt (join-Gruppe, DaisyUI)
+  - Alle clientseitig via useMemo — kein zusätzlicher API-Aufruf
+  - Drei Passwort-Buttons je User: Reset-Mail (nur mit E-Mail, ConfirmModal) / Passwort setzen / Temp-Passwort
+  - Temp-Passwort: Format 2 Großbuchstaben + 4 Ziffern + 2 Kleinbuchstaben (z.B. "AB4712cd"), EINMALIG im Modal
+- Login-Seite: "Passwort vergessen" dynamisch:
+  - Mit @ im Eingabefeld → Link /forgot-password sichtbar
+  - Ohne @ (Benutzername) → Hinweis "Bitte den Administrator kontaktieren"
+  - Nur angezeigt wenn Eingabefeld nicht leer
 
 ### Offen — Reihenfolge
 
-- Phase 0.6a: Benutzerverwaltung /users (Admin verwaltet alle User + Rollen + Funktion)
 - Phase 0.6b: First-Run-Assistent /setup
 - Phase 0.6c: Gästeverwaltung /guests
 - Phase 0.6d: Profilseite /profile (alle Rollen — eigene Login-Daten ändern)
@@ -1029,25 +1048,29 @@ Wenn ein Mitglied kein E-Mail hat und sein Passwort vergessen hat:
 - Lösung: Admin nutzt "Temp-Passwort" Button → teilt es telefonisch mit
 - Mitglied loggt sich ein → ändert Passwort in /profile
 
-"Passwort vergessen" Link auf Login-Seite:
-- Nur sichtbar/nutzbar wenn eingegebene E-Mail-Adresse enthält (@)
-- Bei Benutzername ohne @: Link ausblenden oder Hinweis "Bitte Admin kontaktieren"
+"Passwort vergessen" auf Login-Seite (umgesetzt in src/app/login/page.tsx):
+- Eingabefeld enthält @: Link "Passwort vergessen?" → /forgot-password anzeigen
+- Eingabefeld ohne @ (Benutzername): grauer Text "Passwort vergessen? Bitte den Administrator kontaktieren."
+- Eingabefeld leer: gar nichts anzeigen
+- isEmail = identifier.includes("@") wird auf Komponentenebene berechnet (reaktiv)
 
-### Rollen-Anzeige in der UI
+### Rollen-Anzeige in der UI (ROLE_LABELS)
 
-| DB-Rolle | Anzeige      |
-| -------- | ------------ |
-| admin    | Kassenwart   |
-| board    | Vorstand     |
-| auditor  | Kassenprüfer |
-| member   | Mitglied     |
+| DB-Rolle | Anzeige         |
+| -------- | --------------- |
+| admin    | Administrator   |
+| finanzen | Finanzen        |
+| vorstand | Vorstand        |
+| auditor  | Kassenprüfer    |
+| member   | Mitglied        |
 
 ### Better Auth API-Aufrufe (serverseitig in API-Routen)
 
 - User anlegen: auth.api.signUpEmail({ body: { name, email, password } }) dann UPDATE "user" SET role = X
 - Rolle ändern: UPDATE "user" SET role = X WHERE id = Y (direkt via Drizzle)
 - User deaktivieren: Feld banned = true in Better Auth ODER eigenes Feld in user-Tabelle
-- Passwort zurücksetzen: auth.api.resetPassword oder manuelles UPDATE im account-Tabelle, dann sendMail() via nodemailer
+- Passwort setzen/zurücksetzen: hashPassword(pw) aus better-auth/crypto → db.update(account).set({ password: hashed }).where(eq(account.userId, id), eq(account.providerId, "credential"))
+- Reset-Mail: Temp-Passwort generieren → hashen → DB setzen → sendMail() via nodemailer
 
 ### Hinweis zu Better Auth user-Tabelle
 
@@ -1303,12 +1326,14 @@ Summe Einnahmen       2.790,00 €      Summe Ausgaben     1.045,00 €
 
 #### Regeln
 
-- Nur interne Konten mit accountKind = 'income' auf der linken Seite
-- Nur interne Konten mit accountKind = 'expense' auf der rechten Seite
-- Konten mit accountKind = 'neutral'/'transfer'/'cancel' werden NICHT angezeigt
-- Nur Konten mit tatsächlichen Buchungen anzeigen (keine Nullzeilen)
+- accountKind = 'income': Einnahmen-Spalte zeigt SUM(direction='in'); NICHT in Ausgaben
+- accountKind = 'expense': Ausgaben-Spalte zeigt SUM(direction='out'); NICHT in Einnahmen
+- accountKind = 'neutral': Einnahmen wenn SUM(direction='in') > 0; Ausgaben wenn SUM(direction='out') > 0 — kann in BEIDEN Spalten erscheinen (z.B. Kassendifferenzen)
+- accountKind = 'transfer' oder 'cancel': NICHT anzeigen (in WHERE-Filter ausgeschlossen)
+- Konten mit 0€ in der jeweiligen Richtung nicht anzeigen (keine Nullzeilen)
+- Summe Einnahmen = income.totalIn + neutral.totalIn; Summe Ausgaben = expense.totalOut + neutral.totalOut
+- Überschuss = Summe Einnahmen − Summe Ausgaben (grün wenn ≥ 0, rot wenn negativ)
 - Konten nach Nummer aufsteigend sortieren
-- Überschuss grün, Fehlbetrag rot
 - PDF-Button: Portrait-PDF mit Vereinsname + Geschäftsjahr + Erstellungsdatum + Unterschriftzeile
 
 #### API-Route
@@ -1863,8 +1888,10 @@ src/
       dashboard/
       members/
       settings/
-      users/                        <- Phase 0.6a
+        ImportWizard.tsx            <- 5-Schritt CSV-Import-Wizard (nur für admin sichtbar)
+      users/                        <- Phase 0.6a vollständig
         page.tsx
+        UsersClient.tsx             <- Suche, Sortierung, Filter-Chips, Passwort-Buttons (clientseitig)
       guests/                       <- Phase 0.6c
         page.tsx
       accounts/
@@ -1903,10 +1930,15 @@ src/
         sammel/route.ts         <- POST Sammelbuchung
       receipts/...
       reports/...
+      import/
+        preview/route.ts            <- POST CSV-Vorschau (erste 10 Zeilen)
+        execute/route.ts            <- POST CSV-Import (vollständig)
       users/                        <- Phase 0.6a
         route.ts
         [id]/route.ts
-        [id]/reset-password/route.ts
+        [id]/reset-password/route.ts  <- Temp-Passwort generieren + per E-Mail senden
+        [id]/set-password/route.ts    <- Passwort direkt setzen (min. 8 Zeichen, kein altes nötig)
+        [id]/temp-password/route.ts   <- Temp-Passwort (2Groß+4Ziffern+2Klein), einmalig zurückgeben
       guests/                       <- Phase 0.6c
         route.ts
         [id]/route.ts
@@ -1941,6 +1973,12 @@ src/
       settings.ts
       transactions.ts
       calculations.ts
+      csvParser.ts                  <- BOM-Entfernung, Auto-Delimiter (;/,), quoted fields, applyMapping()
+      importAccounts.ts             <- previewAccountRow, importAccounts (interne Konten)
+      importUsers.ts                <- generateUsername, importUsers (via auth.api.signUpEmail)
+      importMembers.ts              <- parseDate (DD.MM.YYYY + ISO), importMembers
+      importTransactions.ts         <- normalizeDirection, importTransactions (ext.Konto: Name/sortOrder/id)
+      mailer.ts                     <- sendMail() via nodemailer, encryptPassword/decryptPassword (AES-256)
     data/
       internalAccountsDefault.ts    <- Variante A (Seniorenclub), B (Allgemein), C (CSV-Parser)
   modules/
