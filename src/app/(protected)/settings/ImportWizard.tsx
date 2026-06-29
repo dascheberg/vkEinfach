@@ -329,8 +329,8 @@ export default function ImportWizard() {
                 <table className="table table-xs text-base">
                   <thead>
                     <tr>
-                      {csvHeaders.map((h) => (
-                        <th key={h} className="bg-base-200">{h}</th>
+                      {csvHeaders.map((h, i) => (
+                        <th key={i} className="bg-base-200">{h}</th>
                       ))}
                     </tr>
                   </thead>

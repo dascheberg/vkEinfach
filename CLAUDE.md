@@ -199,10 +199,22 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
   - Vermögensaufstellung PDF (Portrait): ext. Kontensalden, Unterschriftzeile
   - Geburtstage & Jubiläen PDF (Portrait): runde Geburtstage (ab 70, x5), Mitgliedsjubiläen (ab 10J, x5)
   - Beitragsstand PDF (Portrait): alle aktiven Mitglieder, gruppiert bezahlt/offen
+- CSV-Import-Modul (/settings → Tab "Daten importieren"):
+  - 5-Schritt-Wizard (ImportWizard.tsx): Typ → Datei → Zuordnung → Vorschau → Ergebnis
+  - Importtypen: Interne Konten, Benutzer, Mitglieder, Buchungen
+  - CSV-Parser (csvParser.ts): BOM-Entfernung, Auto-Delimiter (;/,), quoted fields, applyMapping()
+  - Importlogik in src/lib/utils/importAccounts.ts / importUsers.ts / importMembers.ts / importTransactions.ts
+  - API: POST /api/import/preview (erste 10 Zeilen), POST /api/import/execute (vollständiger Import)
+  - Ext. Konten-Hinweis in Schritt 2 (Buchungen): zeigt verfügbare Konten, Matching nach Name/sortOrder/id
+  - Buchungen-Import: Belegnummern fortlaufend über getNextReceiptNumber(), kein db.transaction()
+- Benutzerverwaltung /users — Suchfeld + Sortierung + Filter-Chips (Phase 0.6a vollständig):
+  - Suchfeld: Debounced (300ms) Namenssuche, live clientseitig
+  - Sortierbuttons: Name / Freigabe / Rolle / Erstellt am (Toggle Richtung, aktiver Button btn-primary)
+  - Filter-Chips: Alle / Freigeschaltet / Gesperrt (join-Gruppe, DaisyUI)
+  - Alle clientseitig via useMemo — kein zusätzlicher API-Aufruf
 
 ### Offen — Reihenfolge
 
-- Phase 0.6a: Benutzerverwaltung /users (Admin verwaltet alle User + Rollen + Funktion)
 - Phase 0.6b: First-Run-Assistent /setup
 - Phase 0.6c: Gästeverwaltung /guests
 - Phase 0.6d: Profilseite /profile (alle Rollen — eigene Login-Daten ändern)
@@ -1646,8 +1658,10 @@ src/
       dashboard/
       members/
       settings/
+        ImportWizard.tsx            <- 5-Schritt CSV-Import-Wizard (nur für admin sichtbar)
       users/                        <- Phase 0.6a
         page.tsx
+        UsersClient.tsx             <- Suchfeld (debounced), Sortierung, Filter-Chips (alle clientseitig)
       guests/                       <- Phase 0.6c
         page.tsx
       accounts/
@@ -1686,6 +1700,9 @@ src/
         sammel/route.ts         <- POST Sammelbuchung
       receipts/...
       reports/...
+      import/
+        preview/route.ts            <- POST CSV-Vorschau (erste 10 Zeilen)
+        execute/route.ts            <- POST CSV-Import (vollständig)
       users/                        <- Phase 0.6a
         route.ts
         [id]/route.ts
@@ -1724,6 +1741,11 @@ src/
       settings.ts
       transactions.ts
       calculations.ts
+      csvParser.ts                  <- BOM-Entfernung, Auto-Delimiter, quoted fields, applyMapping()
+      importAccounts.ts             <- previewAccountRow, importAccounts (interne Konten)
+      importUsers.ts                <- generateUsername, importUsers (via auth.api.signUpEmail)
+      importMembers.ts              <- parseDate (DD.MM.YYYY + ISO), importMembers
+      importTransactions.ts         <- normalizeDirection, importTransactions (ext.Konto: Name/sortOrder/id)
     data/
       internalAccountsDefault.ts    <- Variante A (Seniorenclub), B (Allgemein), C (CSV-Parser)
   modules/

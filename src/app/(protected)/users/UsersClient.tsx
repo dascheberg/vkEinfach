@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
@@ -107,6 +107,53 @@ export default function UsersClient({ currentUserId }: Props) {
   const [resetUser, setResetUser] = useState<UserRow | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetResult, setResetResult] = useState("");
+
+  // Search / sort / filter
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortField, setSortField] = useState<"name" | "approved" | "role" | "createdAt">("name");
+  const [sortDir,   setSortDir]   = useState<"asc" | "desc">("asc");
+  const [filter,    setFilter]    = useState<"all" | "approved" | "locked">("all");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  function handleSort(field: typeof sortField) {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
+  }
+
+  const displayedUsers = useMemo(() => {
+    let result = [...users];
+
+    if (filter === "approved") result = result.filter((u) => u.approved && !u.banned);
+    if (filter === "locked")   result = result.filter((u) => u.banned || !u.approved);
+
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.trim().toLowerCase();
+      result = result.filter((u) => u.name.toLowerCase().includes(q));
+    }
+
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "name":      cmp = a.name.localeCompare(b.name, "de"); break;
+        case "approved":  cmp = Number(b.approved) - Number(a.approved); break;
+        case "role":      cmp = (ROLE_LABELS[a.role] ?? "").localeCompare(ROLE_LABELS[b.role] ?? "", "de"); break;
+        case "createdAt": cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(); break;
+      }
+      return sortDir === "desc" ? -cmp : cmp;
+    });
+
+    return result;
+  }, [users, debouncedSearch, filter, sortField, sortDir]);
+
+  function sortIcon(field: typeof sortField) {
+    if (sortField !== field) return <span className="opacity-30 ml-1">⇅</span>;
+    return <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
+  }
 
   async function load() {
     const res = await fetch("/api/users");
@@ -232,8 +279,53 @@ export default function UsersClient({ currentUserId }: Props) {
       {error && <div className="alert alert-error mb-4 text-base"><span>{error}</span><button className="btn btn-ghost btn-xs ml-auto" onClick={() => setError("")}>✕</button></div>}
       {success && <div className="alert alert-success mb-4 text-base"><span>{success}</span><button className="btn btn-ghost btn-xs ml-auto" onClick={() => setSuccess("")}>✕</button></div>}
 
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <input
+          type="search"
+          className="input input-bordered text-base w-64"
+          placeholder="Name suchen…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         <button className="btn btn-primary text-base" onClick={openCreate}>Neuer Benutzer</button>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {/* Filter-Chips */}
+        <div className="join mr-2">
+          {(["all", "approved", "locked"] as const).map((v) => (
+            <button
+              key={v}
+              className={`btn btn-sm join-item text-base ${filter === v ? "btn-primary" : "btn-ghost border-base-300"}`}
+              onClick={() => setFilter(v)}
+            >
+              {v === "all" ? "Alle" : v === "approved" ? "Freigeschaltet" : "Gesperrt"}
+            </button>
+          ))}
+        </div>
+
+        {/* Sortier-Buttons */}
+        <span className="text-base text-base-content/50 hidden sm:inline">Sortierung:</span>
+        {([
+          { field: "name",      label: "Name" },
+          { field: "approved",  label: "Freigabe" },
+          { field: "role",      label: "Rolle" },
+          { field: "createdAt", label: "Erstellt" },
+        ] as const).map(({ field, label }) => (
+          <button
+            key={field}
+            className={`btn btn-sm text-base ${sortField === field ? "btn-primary" : "btn-ghost border-base-300"}`}
+            onClick={() => handleSort(field)}
+          >
+            {label}{sortIcon(field)}
+          </button>
+        ))}
+
+        {displayedUsers.length !== users.length && (
+          <span className="text-base text-base-content/50 ml-auto">
+            {displayedUsers.length} von {users.length}
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -250,7 +342,7 @@ export default function UsersClient({ currentUserId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
+            {displayedUsers.map((u) => {
               const isSelf = u.id === currentUserId;
               const funcs = parseFunctions(u.function);
               return (

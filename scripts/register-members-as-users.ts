@@ -1,5 +1,5 @@
 import { db } from "../src/lib/db";
-import { members } from "../src/lib/db/schema";
+import { members, user } from "../src/lib/db/schema";
 import { auth } from "../src/lib/auth";
 import { eq, and, isNull, or } from "drizzle-orm";
 
@@ -100,15 +100,12 @@ async function registerMembersAsUsers() {
       }
 
       // Rolle, Funktion und Benutzername setzen
-      await db.execute(
-        `UPDATE "user"
-         SET role = 'member',
-             function = 'M',
-             username = $1,
-             approved = true
-         WHERE id = $2`,
-        [username, result.user.id]
-      );
+      await db.update(user).set({
+        role: "member",
+        userFunction: "M",
+        username,
+        approved: true,
+      }).where(eq(user.id, result.user.id));
 
       // Benutzername zur Liste hinzufügen
       existingUsernames.add(username);
@@ -148,5 +145,4 @@ async function registerMembersAsUsers() {
 
 registerMembersAsUsers()
   .catch(console.error)
-  .finally(() => process.exit(0));
   .finally(() => process.exit(0));
