@@ -4,6 +4,9 @@ import { useSettings } from "@/context/SettingsContext";
 import { authClient } from "@/lib/auth/client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import ImportWizard from "./ImportWizard";
+
+type SettingsTab = "einstellungen" | "importieren";
 
 export default function SettingsPage() {
   const { settings, reload } = useSettings();
@@ -11,12 +14,13 @@ export default function SettingsPage() {
   const router = useRouter();
   const role = (session?.user as { role?: string })?.role;
   const isAdmin = role === "admin";
+  const [activeTab, setActiveTab] = useState<SettingsTab>("einstellungen");
 
   useEffect(() => {
-    // Session noch nicht geladen → warten
     if (session === undefined) return;
     if (role && role !== "admin") router.replace("/profile");
   }, [session, role, router]);
+
   const [appName, setAppName] = useState("");
   const [clubName, setClubName] = useState("");
   const [clubSubtitle, setClubSubtitle] = useState("");
@@ -141,227 +145,252 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-xl font-bold mb-6">Einstellungen</h1>
-
-      <div className="card bg-base-100 shadow mb-6">
-        <div className="card-body">
-          <h2 className="text-base font-bold mb-4">Anwendung & Verein</h2>
-
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text text-base">App-Name</span>
-            </label>
-            <input
-              type="text"
-              className="input input-bordered text-base"
-              value={appName}
-              onChange={(e) => setAppName(e.target.value)}
-            />
-          </div>
-
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text text-base">Vereinsname</span>
-            </label>
-            <input
-              type="text"
-              className="input input-bordered text-base"
-              value={clubName}
-              onChange={(e) => setClubName(e.target.value)}
-            />
-          </div>
-
-          <div className="form-control mb-4">
-            <label className="label">
-              <span className="label-text text-base">Untertitel</span>
-            </label>
-            <input
-              type="text"
-              className="input input-bordered text-base"
-              value={clubSubtitle}
-              onChange={(e) => setClubSubtitle(e.target.value)}
-            />
-          </div>
-
-          <button
-            className="btn btn-primary text-base"
-            onClick={handleSaveNames}
-            disabled={saving}
-          >
-            {saving ? "Speichern..." : saved ? "✓ Gespeichert" : "Speichern"}
-          </button>
-        </div>
-      </div>
+      <h1 className="text-xl font-bold mb-4">Einstellungen</h1>
 
       {isAdmin && (
-        <div className="card bg-base-100 shadow mb-6">
-          <div className="card-body">
-            <h2 className="text-base font-bold mb-4">Module</h2>
-            <div className="flex flex-col gap-3">
-              {modules.map((mod) => (
-                <div key={mod.key} className="flex items-center justify-between">
-                  <span className="text-base">{mod.label}</span>
+        <div role="tablist" className="tabs tabs-lifted tabs-lg mb-6">
+          <button
+            role="tab"
+            className={`tab text-base${activeTab === "einstellungen" ? " tab-active" : ""}`}
+            onClick={() => setActiveTab("einstellungen")}
+          >
+            Einstellungen
+          </button>
+          <button
+            role="tab"
+            className={`tab text-base${activeTab === "importieren" ? " tab-active" : ""}`}
+            onClick={() => setActiveTab("importieren")}
+          >
+            Daten importieren
+          </button>
+        </div>
+      )}
+
+      {activeTab === "importieren" && isAdmin && <ImportWizard />}
+
+      {activeTab === "einstellungen" && (
+        <div>
+          <div className="card bg-base-100 shadow mb-6">
+            <div className="card-body">
+              <h2 className="text-base font-bold mb-4">Anwendung &amp; Verein</h2>
+
+              <div className="form-control mb-3">
+                <label className="label">
+                  <span className="label-text text-base">App-Name</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered text-base"
+                  value={appName}
+                  onChange={(e) => setAppName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-control mb-3">
+                <label className="label">
+                  <span className="label-text text-base">Vereinsname</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered text-base"
+                  value={clubName}
+                  onChange={(e) => setClubName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-control mb-4">
+                <label className="label">
+                  <span className="label-text text-base">Untertitel</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered text-base"
+                  value={clubSubtitle}
+                  onChange={(e) => setClubSubtitle(e.target.value)}
+                />
+              </div>
+
+              <button
+                className="btn btn-primary text-base"
+                onClick={handleSaveNames}
+                disabled={saving}
+              >
+                {saving ? "Speichern..." : saved ? "✓ Gespeichert" : "Speichern"}
+              </button>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <div className="card bg-base-100 shadow mb-6">
+              <div className="card-body">
+                <h2 className="text-base font-bold mb-4">Module</h2>
+                <div className="flex flex-col gap-3">
+                  {modules.map((mod) => (
+                    <div key={mod.key} className="flex items-center justify-between">
+                      <span className="text-base">{mod.label}</span>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary"
+                        checked={mod.value}
+                        onChange={() => toggleModule(mod.key, mod.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="card bg-base-100 shadow mb-6">
+            <div className="card-body">
+              <h2 className="text-base font-bold mb-4">Scan-Belege</h2>
+              <div className="form-control mb-4">
+                <label className="label">
+                  <span className="label-text text-base">Standardverzeichnis (lokal)</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered text-base font-mono"
+                  placeholder="z.B. C:\Belege\"
+                  value={receiptDefaultPath}
+                  onChange={(e) => setReceiptDefaultPath(e.target.value)}
+                />
+                <label className="label">
+                  <span className="label-text-alt text-base text-base-content/60">
+                    Wird in der Belegerfassung als Standardpfad vorausgefüllt (nur bei Speicherort&nbsp;„Lokal").
+                  </span>
+                </label>
+              </div>
+              <button
+                className="btn btn-primary text-base"
+                onClick={handleSaveReceiptPath}
+                disabled={savingPath}
+              >
+                {savingPath ? "Speichern..." : savedPath ? "✓ Gespeichert" : "Speichern"}
+              </button>
+            </div>
+          </div>
+
+          <div className="card bg-base-100 shadow">
+            <div className="card-body">
+              <h2 className="text-base font-bold mb-1">E-Mail Konfiguration</h2>
+              <p className="text-base text-base-content/60 mb-4">
+                SMTP-Zugangsdaten für den E-Mail-Versand (Passwort-Reset, Benachrichtigungen).
+              </p>
+
+              {smtpTestResult && (
+                <div className={`alert mb-4 text-base ${smtpTestResult.ok ? "alert-success" : "alert-error"}`}>
+                  {smtpTestResult.message}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-base">SMTP-Server</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    className="toggle toggle-primary"
-                    checked={mod.value}
-                    onChange={() => toggleModule(mod.key, mod.value)}
+                    type="text"
+                    className="input input-bordered text-base"
+                    placeholder="smtp.strato.de"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
                   />
                 </div>
-              ))}
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-base">Port</span>
+                  </label>
+                  <div className="flex gap-2 items-center mt-1">
+                    {["587", "465", "25"].map((p) => (
+                      <label key={p} className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          className="radio radio-primary radio-sm"
+                          checked={smtpPort === p}
+                          onChange={() => setSmtpPort(p)}
+                        />
+                        <span className="text-base">{p}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-control mb-3">
+                <label className="label">
+                  <span className="label-text text-base">Benutzername (E-Mail-Adresse)</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered text-base"
+                  placeholder="kasse@meinverein.de"
+                  value={smtpUser}
+                  onChange={(e) => setSmtpUser(e.target.value)}
+                />
+              </div>
+
+              <div className="form-control mb-3">
+                <label className="label">
+                  <span className="label-text text-base">Passwort</span>
+                </label>
+                <input
+                  type="password"
+                  className="input input-bordered text-base"
+                  placeholder={settings.smtpConfigured ? "••••••••  (bereits gesetzt — leer lassen zum Beibehalten)" : "Passwort eingeben"}
+                  value={smtpPassword}
+                  onChange={(e) => { setSmtpPassword(e.target.value); setSmtpPasswordChanged(true); }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-base">Absender-Adresse</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered text-base"
+                    placeholder="kasse@meinverein.de"
+                    value={smtpFrom}
+                    onChange={(e) => setSmtpFrom(e.target.value)}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-base">Absender-Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered text-base"
+                    placeholder="Kassenwart Musterverein"
+                    value={smtpFromName}
+                    onChange={(e) => setSmtpFromName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="btn btn-primary text-base"
+                  onClick={handleSaveSmtp}
+                  disabled={savingSmtp}
+                >
+                  {savingSmtp ? "Speichern..." : savedSmtp ? "✓ Gespeichert" : "Speichern"}
+                </button>
+                <button
+                  className="btn btn-outline text-base"
+                  onClick={handleTestSmtp}
+                  disabled={testingSmtp || !settings.smtpConfigured}
+                  title={!settings.smtpConfigured ? "Bitte zuerst SMTP-Daten speichern" : ""}
+                >
+                  {testingSmtp ? "Sende..." : "Verbindung testen"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      <div className="card bg-base-100 shadow mb-6">
-        <div className="card-body">
-          <h2 className="text-base font-bold mb-4">Scan-Belege</h2>
-          <div className="form-control mb-4">
-            <label className="label">
-              <span className="label-text text-base">Standardverzeichnis (lokal)</span>
-            </label>
-            <input
-              type="text"
-              className="input input-bordered text-base font-mono"
-              placeholder="z.B. C:\Belege\"
-              value={receiptDefaultPath}
-              onChange={(e) => setReceiptDefaultPath(e.target.value)}
-            />
-            <label className="label">
-              <span className="label-text-alt text-base text-base-content/60">
-                Wird in der Belegerfassung als Standardpfad vorausgefüllt (nur bei Speicherort&nbsp;„Lokal").
-              </span>
-            </label>
-          </div>
-          <button
-            className="btn btn-primary text-base"
-            onClick={handleSaveReceiptPath}
-            disabled={savingPath}
-          >
-            {savingPath ? "Speichern..." : savedPath ? "✓ Gespeichert" : "Speichern"}
-          </button>
-        </div>
-      </div>
-
-      <div className="card bg-base-100 shadow">
-        <div className="card-body">
-          <h2 className="text-base font-bold mb-1">E-Mail Konfiguration</h2>
-          <p className="text-base text-base-content/60 mb-4">
-            SMTP-Zugangsdaten für den E-Mail-Versand (Passwort-Reset, Benachrichtigungen).
-          </p>
-
-          {smtpTestResult && (
-            <div className={`alert mb-4 text-base ${smtpTestResult.ok ? "alert-success" : "alert-error"}`}>
-              {smtpTestResult.message}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-base">SMTP-Server</span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered text-base"
-                placeholder="smtp.strato.de"
-                value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
-              />
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-base">Port</span>
-              </label>
-              <div className="flex gap-2 items-center mt-1">
-                {["587", "465", "25"].map((p) => (
-                  <label key={p} className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      className="radio radio-primary radio-sm"
-                      checked={smtpPort === p}
-                      onChange={() => setSmtpPort(p)}
-                    />
-                    <span className="text-base">{p}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text text-base">Benutzername (E-Mail-Adresse)</span>
-            </label>
-            <input
-              type="text"
-              className="input input-bordered text-base"
-              placeholder="kasse@meinverein.de"
-              value={smtpUser}
-              onChange={(e) => setSmtpUser(e.target.value)}
-            />
-          </div>
-
-          <div className="form-control mb-3">
-            <label className="label">
-              <span className="label-text text-base">Passwort</span>
-            </label>
-            <input
-              type="password"
-              className="input input-bordered text-base"
-              placeholder={settings.smtpConfigured ? "••••••••  (bereits gesetzt — leer lassen zum Beibehalten)" : "Passwort eingeben"}
-              value={smtpPassword}
-              onChange={(e) => { setSmtpPassword(e.target.value); setSmtpPasswordChanged(true); }}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-base">Absender-Adresse</span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered text-base"
-                placeholder="kasse@meinverein.de"
-                value={smtpFrom}
-                onChange={(e) => setSmtpFrom(e.target.value)}
-              />
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text text-base">Absender-Name</span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered text-base"
-                placeholder="Kassenwart Musterverein"
-                value={smtpFromName}
-                onChange={(e) => setSmtpFromName(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              className="btn btn-primary text-base"
-              onClick={handleSaveSmtp}
-              disabled={savingSmtp}
-            >
-              {savingSmtp ? "Speichern..." : savedSmtp ? "✓ Gespeichert" : "Speichern"}
-            </button>
-            <button
-              className="btn btn-outline text-base"
-              onClick={handleTestSmtp}
-              disabled={testingSmtp || !settings.smtpConfigured}
-              title={!settings.smtpConfigured ? "Bitte zuerst SMTP-Daten speichern" : ""}
-            >
-              {testingSmtp ? "Sende..." : "Verbindung testen"}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
