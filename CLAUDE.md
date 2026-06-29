@@ -199,22 +199,10 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
   - Vermögensaufstellung PDF (Portrait): ext. Kontensalden, Unterschriftzeile
   - Geburtstage & Jubiläen PDF (Portrait): runde Geburtstage (ab 70, x5), Mitgliedsjubiläen (ab 10J, x5)
   - Beitragsstand PDF (Portrait): alle aktiven Mitglieder, gruppiert bezahlt/offen
-- CSV-Import-Modul (/settings → Tab "Daten importieren"):
-  - 5-Schritt-Wizard (ImportWizard.tsx): Typ → Datei → Zuordnung → Vorschau → Ergebnis
-  - Importtypen: Interne Konten, Benutzer, Mitglieder, Buchungen
-  - CSV-Parser (csvParser.ts): BOM-Entfernung, Auto-Delimiter (;/,), quoted fields, applyMapping()
-  - Importlogik in src/lib/utils/importAccounts.ts / importUsers.ts / importMembers.ts / importTransactions.ts
-  - API: POST /api/import/preview (erste 10 Zeilen), POST /api/import/execute (vollständiger Import)
-  - Ext. Konten-Hinweis in Schritt 2 (Buchungen): zeigt verfügbare Konten, Matching nach Name/sortOrder/id
-  - Buchungen-Import: Belegnummern fortlaufend über getNextReceiptNumber(), kein db.transaction()
-- Benutzerverwaltung /users — Suchfeld + Sortierung + Filter-Chips (Phase 0.6a vollständig):
-  - Suchfeld: Debounced (300ms) Namenssuche, live clientseitig
-  - Sortierbuttons: Name / Freigabe / Rolle / Erstellt am (Toggle Richtung, aktiver Button btn-primary)
-  - Filter-Chips: Alle / Freigeschaltet / Gesperrt (join-Gruppe, DaisyUI)
-  - Alle clientseitig via useMemo — kein zusätzlicher API-Aufruf
 
 ### Offen — Reihenfolge
 
+- Phase 0.6a: Benutzerverwaltung /users (Admin verwaltet alle User + Rollen + Funktion)
 - Phase 0.6b: First-Run-Assistent /setup
 - Phase 0.6c: Gästeverwaltung /guests
 - Phase 0.6d: Profilseite /profile (alle Rollen — eigene Login-Daten ändern)
@@ -811,7 +799,208 @@ Nicht sichtbar für: vorstand, auditor, member
 
 ---
 
-Neue Seite, nur für Rolle admin sichtbar.
+## CSV-Import Modul (/settings → Tab "Daten importieren")
+
+Nur für Rolle `admin` sichtbar. Neuer Tab auf der Einstellungsseite.
+
+### Ablauf (immer gleich, 5 Schritte)
+
+```
+1. Import-Typ wählen (Konten / Benutzer / Mitglieder / Buchungen)
+2. CSV-Datei hochladen
+3. Spalten-Mapping: welche CSV-Spalte → welches App-Feld
+4. Vorschau: erste 5 Zeilen, Fehler markiert
+5. Import starten → Ergebnis anzeigen
+```
+
+### Allgemeine Regeln für alle Import-Typen
+
+- Trennzeichen: Semikolon `;`
+- Erste Zeile: Header (wird übersprungen)
+- Encoding: UTF-8 (mit oder ohne BOM — BOM wird automatisch entfernt)
+- Leere Zeilen werden übersprungen
+- Betrag: Dezimalpunkt ODER Komma erlaubt (30.00 oder 30,00)
+- Datum: DD.MM.JJJJ
+- Boolean: ja/nein, true/false, 1/0 — alles erlaubt
+- Doppelte werden IMMER übersprungen (nie überschreiben)
+- Kein db.transaction() — sequenzielle Inserts in try-catch
+
+### Mapping-UI
+
+Dropdown je App-Feld mit allen CSV-Spalten als Optionen + "-- ignorieren".
+Pflichtfelder mit * markiert. "Weiter" nur wenn alle Pflichtfelder gemappt.
+
+### Vorschau
+
+Erste 5 Zeilen anzeigen:
+- ✅ = importierbar
+- ⚠ = importierbar mit Warnung (fehlende optionale Felder)
+- ❌ = wird übersprungen (Duplikat oder Pflichtfeld fehlt)
+Zusammenfassung: "X importierbar, Y mit Warnung, Z übersprungen"
+
+---
+
+### Import-Typ 1: Interne Konten
+
+**Duplikat-Erkennung:** Kontonummer bereits vorhanden → überspringen
+
+| App-Feld | Pflicht | Erlaubte Werte |
+|---|---|---|
+| Kontonummer | ✅ | Zahl 1-9999 |
+| Bezeichnung | ✅ | Text max. 150 Zeichen |
+| Typ | ❌ | income/expense/neutral/transfer/cancel (Default: neutral) |
+
+Beispiel-CSV:
+```
+nummer;bezeichnung;typ
+100;Übertrag Vorjahr Konto;income
+103;Beitrag laufendes Jahr;income
+200;Ausgaben Kaffeenachmittag;expense
+997;Umbuchung Spar/Konto;transfer
+999;Storno;cancel
+```
+
+---
+
+### Import-Typ 2: Benutzer
+
+Benutzername wird IMMER automatisch generiert: vorname.nachname
+(Umlaute: ä→ae, ö→oe, ü→ue, ß→ss, alles klein)
+Bei Duplikaten: Nummer anhängen (hans.mueller2, hans.mueller3)
+E-Mail ist optional — kein Pflichtfeld.
+Passwort-Default: vorname24640
+
+**Duplikat-Erkennung:** Benutzername vorname.nachname bereits vorhanden → überspringen
+
+Praktisch: Mitglieder-CSV kann direkt als Benutzer-CSV verwendet werden!
+
+| App-Feld | Pflicht | Hinweis |
+|---|---|---|
+| Nachname | ✅ | Für Benutzername-Generierung |
+| Vorname | ✅ | Für Benutzername + Passwort |
+| E-Mail | ❌ | Optional |
+| Passwort | ❌ | Default: vorname24640 |
+| Rolle | ❌ | Default: member. Erlaubt: admin/finanzen/vorstand/auditor/member |
+| Funktion | ❌ | Default: M. Erlaubt: M/1.V/2.V/KW/SW/KS/B1/B2/B3/KP1/KP2 |
+
+Nach Import: approved = true (automatisch freigeschaltet)
+Fake-E-Mail wenn keine E-Mail: vorname.nachname@intern.vkeinfach.local
+
+Beispiel-CSV:
+```
+nachname;vorname;rolle;funktion
+Müller;Hans;member;M
+Schmidt;Grete;finanzen;KW
+Bauer;Klaus;auditor;KP1
+```
+
+---
+
+### Import-Typ 3: Mitglieder
+
+**Duplikat-Erkennung:** Nachname + Vorname + Geburtsdatum bereits vorhanden → überspringen
+Wenn kein Geburtsdatum: nur Nachname + Vorname prüfen
+
+| App-Feld | Pflicht | Format |
+|---|---|---|
+| Nachname | ✅ | Text |
+| Vorname | ✅ | Text |
+| Straße | ❌ | Text |
+| PLZ | ❌ | Text |
+| Ort | ❌ | Text |
+| Geburtsdatum | ❌ | DD.MM.JJJJ |
+| Telefon Festnetz | ❌ | Text |
+| Telefon Mobil | ❌ | Text |
+| E-Mail | ❌ | Text |
+| Funktion | ❌ | M/1.V/2.V/KW/SW/KS/B1/B2/B3/KP1/KP2 (Default: M) |
+| Eingetreten am | ❌ | DD.MM.JJJJ |
+| Aktiv | ❌ | ja/nein/true/false/1/0 (Default: true) |
+| Beitrag bezahlt | ❌ | ja/nein/true/false/1/0 (Default: false) |
+| Bemerkungen | ❌ | Text |
+
+Beispiel-CSV:
+```
+nachname;vorname;geburtsdatum;strasse;plz;ort;eingetreten
+Müller;Hans;15.03.1952;Dorfstr. 1;24640;Schmalfeld;01.01.2015
+Schmidt;Grete;22.07.1948;Hauptstr. 5;24640;Schmalfeld;01.01.2010
+```
+
+---
+
+### Import-Typ 4: Buchungen
+
+**Duplikat-Erkennung:** Belegnummer bereits vorhanden → überspringen
+Wenn keine Belegnummer in CSV: wird automatisch vergeben (nie Duplikat)
+
+| App-Feld | Pflicht | Format |
+|---|---|---|
+| Datum | ✅ | DD.MM.JJJJ |
+| Betrag | ✅ | Dezimal (30.00 oder 30,00) — immer positiv |
+| Richtung | ✅ | in/out oder E/A oder Einnahme/Ausgabe |
+| Externes Konto | ✅ | Name des Kontos ODER Sortier-Nummer (1-5) |
+| Internes Konto | ✅ | Kontonummer (100-999) |
+| Beschreibung | ❌ | Text |
+| Belegnummer | ❌ | JJJJ-NNNN (sonst automatisch vergeben) |
+| Mitglied Nachname | ❌ | Text — wird per Nachname+Vorname gesucht |
+| Mitglied Vorname | ❌ | Text |
+
+Buchungsjahr: wird aus dem Datum der Buchung ermittelt.
+Wenn kein Buchungsjahr für das Jahr existiert → Warnung, Buchung trotzdem importieren.
+
+Beispiel-CSV:
+```
+datum;betrag;richtung;ext_konto;int_konto;beschreibung;belegnummer;mitglied_nachname;mitglied_vorname
+03.01.2026;30.00;in;1;103;Mitgliedsbeitrag;2026-0001;Müller;Hans
+05.01.2026;250.00;out;1;200;Kaffeenachmittag;2026-0002;;
+```
+
+---
+
+### API-Routen CSV-Import
+
+- POST /api/import/preview  — CSV parsen, Mapping anwenden, Vorschau zurückgeben
+- POST /api/import/execute  — Import durchführen, Ergebnis zurückgeben
+
+Request:
+```ts
+{
+  type: 'accounts' | 'users' | 'members' | 'transactions',
+  csvContent: string,
+  mapping: { [appField: string]: string | null }
+}
+```
+
+Response execute:
+```ts
+{
+  imported: number,
+  skipped: number,
+  warnings: number,
+  errors: number,
+  details: {
+    row: number,
+    status: 'imported' | 'skipped' | 'warning' | 'error',
+    message: string
+  }[]
+}
+```
+
+### Dateistruktur CSV-Import
+
+```
+src/app/(protected)/settings/page.tsx  <- neuer Tab "Daten importieren"
+src/app/api/import/
+  preview/route.ts
+  execute/route.ts
+src/lib/utils/
+  csvParser.ts          <- CSV einlesen, BOM entfernen, Mapping anwenden
+  importAccounts.ts     <- Import interne Konten
+  importUsers.ts        <- Import Benutzer (inkl. Benutzername-Generierung)
+  importMembers.ts      <- Import Mitglieder
+  importTransactions.ts <- Import Buchungen
+```
+
+---
 
 ### Was die Seite kann
 
@@ -828,7 +1017,21 @@ Neue Seite, nur für Rolle admin sichtbar.
 - Vereinsfunktion ändern: Checkboxen
 - User freischalten / sperren (approved true/false)
 - User deaktivieren / reaktivieren (kein Löschen — Datenschutz)
-- Passwort zurücksetzen: generiert Temp-Passwort, sendet E-Mail via sendMail()
+- Passwort-Optionen (alle nur für admin, kein confirm() — eigenes Modal):
+  a) "Reset-Mail senden" — nur wenn User eine E-Mail hat
+  b) "Passwort setzen" — Admin gibt neues Passwort direkt ein (min. 8 Zeichen, kein altes nötig)
+  c) "Temp-Passwort" — generiert zufälliges Passwort (2 Großbuchstaben + 4 Zahlen + 2 Kleinbuchstaben, z.B. "AB4712cd"), setzt es sofort, zeigt es EINMALIG im Modal an mit Hinweis "Bitte dem Mitglied telefonisch mitteilen"
+
+### Passwort-Problem ohne E-Mail
+
+Wenn ein Mitglied kein E-Mail hat und sein Passwort vergessen hat:
+- "Passwort vergessen" auf Login-Seite funktioniert nicht (keine E-Mail)
+- Lösung: Admin nutzt "Temp-Passwort" Button → teilt es telefonisch mit
+- Mitglied loggt sich ein → ändert Passwort in /profile
+
+"Passwort vergessen" Link auf Login-Seite:
+- Nur sichtbar/nutzbar wenn eingegebene E-Mail-Adresse enthält (@)
+- Bei Benutzername ohne @: Link ausblenden oder Hinweis "Bitte Admin kontaktieren"
 
 ### Rollen-Anzeige in der UI
 
@@ -854,10 +1057,12 @@ Admin-Operationen (Rolle setzen, User auflisten).
 
 ### API-Routen
 
-- GET  /api/users                     — alle User auflisten (nur admin)
-- POST /api/users                     — neuen User anlegen (nur admin)
-- PUT  /api/users/[id]                — Rolle ändern / deaktivieren (nur admin)
-- POST /api/users/[id]/reset-password — Temp-Passwort generieren + E-Mail senden
+- GET  /api/users                          — alle User auflisten (nur admin)
+- POST /api/users                          — neuen User anlegen (nur admin)
+- PUT  /api/users/[id]                     — Rolle ändern / deaktivieren (nur admin)
+- POST /api/users/[id]/reset-password      — Temp-Passwort per E-Mail senden (nur wenn E-Mail vorhanden)
+- POST /api/users/[id]/set-password        — Passwort direkt setzen (Admin gibt neues Passwort ein)
+- POST /api/users/[id]/temp-password       — Zufälliges Temp-Passwort generieren + setzen, zurückgeben
 
 ### Sicherheit
 
@@ -1658,10 +1863,8 @@ src/
       dashboard/
       members/
       settings/
-        ImportWizard.tsx            <- 5-Schritt CSV-Import-Wizard (nur für admin sichtbar)
       users/                        <- Phase 0.6a
         page.tsx
-        UsersClient.tsx             <- Suchfeld (debounced), Sortierung, Filter-Chips (alle clientseitig)
       guests/                       <- Phase 0.6c
         page.tsx
       accounts/
@@ -1700,9 +1903,6 @@ src/
         sammel/route.ts         <- POST Sammelbuchung
       receipts/...
       reports/...
-      import/
-        preview/route.ts            <- POST CSV-Vorschau (erste 10 Zeilen)
-        execute/route.ts            <- POST CSV-Import (vollständig)
       users/                        <- Phase 0.6a
         route.ts
         [id]/route.ts
@@ -1741,11 +1941,6 @@ src/
       settings.ts
       transactions.ts
       calculations.ts
-      csvParser.ts                  <- BOM-Entfernung, Auto-Delimiter, quoted fields, applyMapping()
-      importAccounts.ts             <- previewAccountRow, importAccounts (interne Konten)
-      importUsers.ts                <- generateUsername, importUsers (via auth.api.signUpEmail)
-      importMembers.ts              <- parseDate (DD.MM.YYYY + ISO), importMembers
-      importTransactions.ts         <- normalizeDirection, importTransactions (ext.Konto: Name/sortOrder/id)
     data/
       internalAccountsDefault.ts    <- Variante A (Seniorenclub), B (Allgemein), C (CSV-Parser)
   modules/

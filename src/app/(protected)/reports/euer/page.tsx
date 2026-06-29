@@ -53,16 +53,18 @@ export default async function EuerPage({ searchParams }: { searchParams: SearchP
         eq(transactions.fiscalYearId, selectedFY.id),
       ),
     )
-    .where(inArray(internalAccounts.accountKind, ["income", "expense"]))
+    .where(inArray(internalAccounts.accountKind, ["income", "expense", "neutral"]))
     .groupBy(internalAccounts.id, internalAccounts.number, internalAccounts.name, internalAccounts.accountKind)
     .orderBy(asc(internalAccounts.number));
 
-  const incomeRows  = rows
-    .filter(r => r.accountKind === "income" && parseFloat(r.totalIn)  > 0)
+  // income: direction='in' only; expense: direction='out' only;
+  // neutral: direction='in' → Einnahmen, direction='out' → Ausgaben (kann in beiden erscheinen)
+  const incomeRows = rows
+    .filter(r => (r.accountKind === "income" || r.accountKind === "neutral") && parseFloat(r.totalIn) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalIn) }));
 
   const expenseRows = rows
-    .filter(r => r.accountKind === "expense" && parseFloat(r.totalOut) > 0)
+    .filter(r => (r.accountKind === "expense" || r.accountKind === "neutral") && parseFloat(r.totalOut) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalOut) }));
 
   const totalIncome  = incomeRows.reduce((s, r) => s + r.total, 0);

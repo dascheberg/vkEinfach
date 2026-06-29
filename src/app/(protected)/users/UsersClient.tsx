@@ -102,11 +102,18 @@ export default function UsersClient({ currentUserId }: Props) {
   const [eFunctions, setEFunctions] = useState<string[]>([]);
   const [eLoading, setELoading] = useState(false);
 
-  // Reset password modal
-  const resetRef = useRef<HTMLDialogElement>(null);
-  const [resetUser, setResetUser] = useState<UserRow | null>(null);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetResult, setResetResult] = useState("");
+  // Set password modal
+  const setPwRef = useRef<HTMLDialogElement>(null);
+  const [setPwUser, setSetPwUser] = useState<UserRow | null>(null);
+  const [setPwNew, setSetPwNew] = useState("");
+  const [setPwRepeat, setSetPwRepeat] = useState("");
+  const [setPwLoading, setSetPwLoading] = useState(false);
+
+  // Temp password result modal
+  const tempPwRef = useRef<HTMLDialogElement>(null);
+  const [tempPwUser, setTempPwUser] = useState<UserRow | null>(null);
+  const [tempPwResult, setTempPwResult] = useState("");
+  const [tempPwPending, setTempPwPending] = useState<string | null>(null);
 
   // Search / sort / filter
   const [searchQuery, setSearchQuery]   = useState("");
@@ -254,22 +261,51 @@ export default function UsersClient({ currentUserId }: Props) {
     if (ok) { editRef.current?.close(); setSuccess("Gespeichert"); await load(); router.refresh(); }
   }
 
-  function openReset(u: UserRow) {
-    setResetUser(u); setResetResult(""); setError("");
-    resetRef.current?.showModal();
-  }
-
-  async function handleReset() {
-    if (!resetUser) return;
-    setResetLoading(true); setError("");
-    const res = await fetch(`/api/users/${resetUser.id}/reset-password`, {
+  async function handleResetMail(u: UserRow) {
+    setError(""); setSuccess("");
+    const res = await fetch(`/api/users/${u.id}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
     const data = await res.json();
-    setResetLoading(false);
     if (!res.ok) { setError(data.error ?? "Fehler"); return; }
-    setResetResult(data.tempPassword ?? "OK");
+    setSuccess(`Reset-E-Mail an ${u.email} gesendet`);
+  }
+
+  function openSetPw(u: UserRow) {
+    setSetPwUser(u); setSetPwNew(""); setSetPwRepeat(""); setError("");
+    setPwRef.current?.showModal();
+  }
+
+  async function handleSetPw() {
+    if (!setPwUser) return;
+    if (setPwNew.length < 8) { setError("Passwort muss mindestens 8 Zeichen lang sein"); return; }
+    if (setPwNew !== setPwRepeat) { setError("Passwörter stimmen nicht überein"); return; }
+    setSetPwLoading(true); setError("");
+    const res = await fetch(`/api/users/${setPwUser.id}/set-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: setPwNew }),
+    });
+    const data = await res.json();
+    setSetPwLoading(false);
+    if (!res.ok) { setError(data.error ?? "Fehler"); return; }
+    setPwRef.current?.close();
+    setSuccess(`Passwort für ${setPwUser.name} gesetzt`);
+  }
+
+  async function handleTempPw(u: UserRow) {
+    setError(""); setTempPwUser(u); setTempPwResult("");
+    setTempPwPending(u.id);
+    const res = await fetch(`/api/users/${u.id}/temp-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    setTempPwPending(null);
+    if (!res.ok) { setError(data.error ?? "Fehler"); return; }
+    setTempPwResult(data.password);
+    tempPwRef.current?.showModal();
   }
 
   if (loading) return <div className="flex justify-center py-8"><span className="loading loading-spinner loading-md" /></div>;
@@ -415,7 +451,25 @@ export default function UsersClient({ currentUserId }: Props) {
                           </button>
                         </ConfirmModal>
                       )}
-                      <button className="btn btn-xs btn-ghost text-base" onClick={() => openReset(u)}>Passwort</button>
+                      {!isPlaceholderEmail(u.email) && (
+                        <ConfirmModal
+                          title="Reset-E-Mail senden?"
+                          message={`Ein neues Einmalpasswort wird generiert und an ${u.email} gesendet.`}
+                          confirmLabel="Senden"
+                          confirmClass="btn-warning"
+                          onConfirm={() => handleResetMail(u)}
+                        >
+                          <button className="btn btn-xs btn-ghost text-base">Reset-Mail</button>
+                        </ConfirmModal>
+                      )}
+                      <button className="btn btn-xs btn-ghost text-base" onClick={() => openSetPw(u)}>Passwort setzen</button>
+                      <button
+                        className="btn btn-xs btn-ghost text-base"
+                        disabled={tempPwPending === u.id}
+                        onClick={() => handleTempPw(u)}
+                      >
+                        {tempPwPending === u.id ? "…" : "Temp-Passwort"}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -501,38 +555,56 @@ export default function UsersClient({ currentUserId }: Props) {
         <form method="dialog" className="modal-backdrop"><button>close</button></form>
       </dialog>
 
-      {/* ── Reset password modal ── */}
-      <dialog ref={resetRef} className="modal">
+      {/* ── Passwort setzen modal ── */}
+      <dialog ref={setPwRef} className="modal">
         <div className="modal-box">
-          <h3 className="font-bold text-xl mb-4">Passwort zurücksetzen</h3>
-          <p className="text-base mb-4">{resetUser?.name}</p>
-          {resetUser && isPlaceholderEmail(resetUser.email) && (
-            <div className="alert alert-warning mb-4 text-base">
-              Kein E-Mail-Konto — das Passwort wird hier angezeigt. Bitte sicher übergeben.
-            </div>
-          )}
+          <h3 className="font-bold text-xl mb-1">Passwort setzen</h3>
+          <p className="text-base text-base-content/60 mb-4">{setPwUser?.name}</p>
           {error && <div className="alert alert-error mb-3 text-base">{error}</div>}
-          {resetResult ? (
-            <div className="alert alert-success mb-4 text-base">
-              <div>
-                <p className="font-medium">Temporäres Passwort:</p>
-                <p className="font-mono text-xl mt-1 select-all">{resetResult}</p>
-                <p className="text-base mt-2 opacity-70">Bitte sicher übergeben und sofort ändern lassen.</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-base text-base-content/60 mb-4">
-              Ein temporäres Passwort wird generiert
-              {resetUser && !isPlaceholderEmail(resetUser.email) ? " und per E-Mail gesendet" : ""}.
-            </p>
-          )}
+          <div className="form-control mb-3">
+            <label className="label"><span className="label-text text-base">Neues Passwort <span className="text-base-content/50">(min. 8 Zeichen)</span></span></label>
+            <input
+              type="password"
+              className="input input-bordered text-base"
+              value={setPwNew}
+              onChange={(e) => setSetPwNew(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="form-control mb-5">
+            <label className="label"><span className="label-text text-base">Passwort wiederholen</span></label>
+            <input
+              type="password"
+              className="input input-bordered text-base"
+              value={setPwRepeat}
+              onChange={(e) => setSetPwRepeat(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn btn-ghost text-base">Schließen</button></form>
-            {!resetResult && (
-              <button className="btn btn-warning text-base" disabled={resetLoading} onClick={handleReset}>
-                {resetLoading ? "Generieren..." : "Passwort zurücksetzen"}
-              </button>
-            )}
+            <form method="dialog"><button className="btn btn-ghost text-base">Abbrechen</button></form>
+            <button className="btn btn-primary text-base" disabled={setPwLoading} onClick={handleSetPw}>
+              {setPwLoading ? "Speichern..." : "Speichern"}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop"><button>close</button></form>
+      </dialog>
+
+      {/* ── Temp-Passwort Anzeige-Modal ── */}
+      <dialog ref={tempPwRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-xl mb-1">Temporäres Passwort</h3>
+          <p className="text-base text-base-content/60 mb-4">{tempPwUser?.name}</p>
+          <div className="alert alert-warning mb-4 text-base">
+            <div>
+              <p className="font-bold text-xl font-mono tracking-widest select-all">{tempPwResult}</p>
+              <p className="mt-2">Bitte dem Mitglied telefonisch mitteilen.</p>
+              <p className="text-base-content/60 mt-1">Dieses Fenster kann nicht erneut geöffnet werden.</p>
+            </div>
+          </div>
+          <div className="modal-action">
+            <form method="dialog"><button className="btn btn-primary text-base">Verstanden</button></form>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button>close</button></form>

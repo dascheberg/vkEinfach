@@ -52,13 +52,15 @@ export async function GET(req: NextRequest) {
       eq(transactions.internalAccountId, internalAccounts.id),
       eq(transactions.fiscalYearId, fy.id),
     ))
-    .where(inArray(internalAccounts.accountKind, ["income", "expense"]))
+    .where(inArray(internalAccounts.accountKind, ["income", "expense", "neutral"]))
     .groupBy(internalAccounts.number, internalAccounts.name, internalAccounts.accountKind)
     .orderBy(asc(internalAccounts.number));
 
-  const incomeRows  = rows.filter(r => r.accountKind === "income"  && parseFloat(r.totalIn)  > 0)
+  const incomeRows = rows
+    .filter(r => (r.accountKind === "income" || r.accountKind === "neutral") && parseFloat(r.totalIn) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalIn) }));
-  const expenseRows = rows.filter(r => r.accountKind === "expense" && parseFloat(r.totalOut) > 0)
+  const expenseRows = rows
+    .filter(r => (r.accountKind === "expense" || r.accountKind === "neutral") && parseFloat(r.totalOut) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalOut) }));
   const totalIncome  = incomeRows.reduce((s, r) => s + r.total, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.total, 0);

@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [clubName,      setClubName]      = useState("");
   const [setupComplete, setSetupComplete] = useState(true);
 
+  const isEmail = identifier.includes("@");
+
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
@@ -30,7 +32,6 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const isEmail = identifier.includes("@");
     let err;
 
     if (isEmail) {
@@ -106,6 +107,20 @@ export default function LoginPage() {
             >
               {loading ? "Anmelden..." : "Anmelden"}
             </button>
+
+            {identifier.length > 0 && (
+              <div className="text-center text-base mt-1">
+                {isEmail ? (
+                  <a href="/forgot-password" className="link link-primary">
+                    Passwort vergessen?
+                  </a>
+                ) : (
+                  <span className="text-base-content/50">
+                    Passwort vergessen? Bitte den Administrator kontaktieren.
+                  </span>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>
