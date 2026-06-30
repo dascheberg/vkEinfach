@@ -72,7 +72,8 @@ function upcomingBirthdays(activeMembers: ActiveMember[], days = 30) {
 }
 
 export default async function DashboardPage() {
-  await requireAuth();
+  const session = await requireAuth();
+  const role = (session.user as { role?: string }).role ?? "member";
 
   const [allActive, activeFYRows] = await Promise.all([
     db.select({
@@ -206,21 +207,23 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="card bg-base-100 shadow">
-          <div className="card-body">
-            <h2 className="card-title text-xl">Beitragsstand</h2>
-            <p className="text-base text-base-content/60 mb-2">
-              Alle aktiven Mitglieder — getrennt nach bezahlt&nbsp;/&nbsp;offen
-            </p>
-            <a
-              href="/api/reports/beitragsstand/pdf"
-              target="_blank" rel="noopener noreferrer"
-              className="btn btn-outline text-base mt-auto"
-            >
-              PDF öffnen
-            </a>
+        {role !== "member" && (
+          <div className="card bg-base-100 shadow">
+            <div className="card-body">
+              <h2 className="card-title text-xl">Beitragsstand</h2>
+              <p className="text-base text-base-content/60 mb-2">
+                Alle aktiven Mitglieder — getrennt nach bezahlt&nbsp;/&nbsp;offen
+              </p>
+              <a
+                href="/api/reports/beitragsstand/pdf"
+                target="_blank" rel="noopener noreferrer"
+                className="btn btn-outline text-base mt-auto"
+              >
+                PDF öffnen
+              </a>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

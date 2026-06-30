@@ -39,8 +39,6 @@ function drawSectionHeader(doc: PDFKit.PDFDocument, y: number, title: string): n
 export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const role = (session.user as { role?: string })?.role ?? "member";
-  if (role === "member") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const year = parseInt(req.nextUrl.searchParams.get("year") ?? String(new Date().getFullYear()));
 
