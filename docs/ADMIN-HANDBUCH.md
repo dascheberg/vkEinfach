@@ -16,6 +16,8 @@
 7. [Gäste verwalten](#7-gäste-verwalten)
 8. [Reset und Neuinstallation](#8-reset-und-neuinstallation)
 
+> **Stand:** Juni 2026
+
 ---
 
 ## 1. Benutzerverwaltung
@@ -92,12 +94,19 @@ Der Benutzer kann sich weiterhin einloggen, sieht aber nur die Sperrseite.
 
 ### Passwort zurücksetzen
 
-Falls ein Benutzer sein Passwort vergessen hat:
+Für jeden Benutzer stehen drei Passwort-Optionen zur Verfügung:
 
-1. In der Benutzerliste auf **„Passwort zurücksetzen"** klicken
-2. Ein neues Einmalpasswort wird generiert
-3. Das Passwort wird per E-Mail an den Benutzer geschickt (wenn SMTP konfiguriert)
-4. Alternativ: Passwort mündlich mitteilen
+| Schaltfläche | Was passiert | Wann nutzen? |
+|---|---|---|
+| **Reset-Mail senden** | Sendet eine E-Mail mit Temp-Passwort (nur wenn E-Mail hinterlegt) | Wenn der Benutzer eine E-Mail-Adresse hat |
+| **Passwort setzen** | Admin gibt direkt ein neues Passwort ein (min. 8 Zeichen) | Für ein bekanntes, dauerhaftes Passwort |
+| **Temp-Passwort** | Generiert ein zufälliges Passwort (z. B. `AB4712cd`), wird **einmalig** angezeigt | Für Benutzer ohne E-Mail — Passwort telefonisch mitteilen |
+
+> **Ablauf für Benutzer ohne E-Mail:** Temp-Passwort generieren → dem Mitglied telefonisch mitteilen → das Mitglied loggt sich ein und ändert das Passwort in seinem Profil.
+
+### Passwort-Vergessen-Anfragen von der Login-Seite
+
+Wenn ein Benutzer auf der Login-Seite auf **„Passwort vergessen?"** klickt, erhalten Sie automatisch eine Benachrichtigungsmail. Diese enthält Name, Benutzername und E-Mail des Absenders. Sie können dann über die Benutzerverwaltung das Passwort zurücksetzen und die Person kontaktieren.
 
 ---
 
@@ -233,11 +242,24 @@ Das Buchungsjahr definiert den Abrechnungszeitraum. In der Regel entspricht es d
 ### Neues Buchungsjahr anlegen
 
 1. Auf **„+ Neues Buchungsjahr"** klicken
-2. Bezeichnung eingeben (z. B. `2027`)
-3. Von-Datum und Bis-Datum festlegen
-4. **„Speichern"**
+2. Felder ausfüllen:
+   - **Bezeichnung** (z. B. `2027`, Pflicht)
+   - **Beginn** und **Ende** (Pflicht)
+   - **Aktueller Beitrag (€)** (optional) — wenn eingetragen, wird dieser Betrag beim Buchen auf Konto 103 automatisch vorausgefüllt
+   - **Notizen** (optional)
+3. Auf **„Anlegen"** klicken
 
 > **Hinweis:** Es kann immer nur ein Buchungsjahr aktiv sein. Das aktive Jahr erscheint in der Buchungsmaske als Standard.
+
+### Buchungsjahr bearbeiten
+
+Zeitraum oder Beitragshöhe nachträglich ändern:
+
+1. In der Liste auf **„Bearbeiten"** klicken (erscheint bei jedem Jahr)
+2. Gewünschte Felder anpassen: Bezeichnung, Beginn, Ende, Beitragshöhe oder Notizen
+3. Auf **„Speichern"** klicken
+
+> **Hinweis:** Änderungen am Zeitraum beeinflussen keine bestehenden Buchungen — die Buchungen bleiben dem Jahr fest zugeordnet.
 
 ### Buchungsjahr aktivieren
 

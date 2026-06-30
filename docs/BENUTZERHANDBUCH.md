@@ -1,7 +1,8 @@
 # Benutzerhandbuch — vkEinfach
 
 **Für:** Kassenwart, Vorstand, Kassenprüfer, Mitglieder  
-**Sprache:** Einfach und verständlich
+**Sprache:** Einfach und verständlich  
+**Stand:** Juni 2026
 
 ---
 
@@ -34,8 +35,20 @@
 ### Was tun wenn der Login nicht klappt?
 
 - Groß- und Kleinschreibung beim Passwort beachten
-- Bei Passwort-Vergessen: Administrator ansprechen
 - Meldung „Zugang noch nicht freigeschaltet": Der Administrator muss Ihren Zugang noch aktivieren
+
+### Passwort vergessen?
+
+Auf der Login-Seite gibt es den Button **„Passwort vergessen?"** — er ist immer sichtbar, direkt unterhalb von „Anmelden".
+
+1. Auf **„Passwort vergessen?"** klicken
+2. Ihren Benutzernamen oder Ihre E-Mail-Adresse eingeben (wird automatisch vorausgefüllt, wenn Sie bereits etwas eingegeben hatten)
+3. Auf **„Anfrage senden"** klicken
+4. Der Administrator wird automatisch benachrichtigt und setzt Ihr Passwort zurück
+5. Sie erhalten das neue Passwort telefonisch oder per E-Mail vom Administrator
+6. Nach dem Einloggen empfiehlt es sich, das Passwort sofort in **„Mein Profil"** zu ändern
+
+> **Hinweis:** Es wird kein automatischer Reset-Link verschickt. Der Administrator wird informiert und kontaktiert Sie persönlich.
 
 ### Ausloggen
 
@@ -155,12 +168,31 @@ Jede Buchung bekommt automatisch eine Belegnummer (z. B. `2026-0042`).
 | Art | Einnahme oder Ausgabe |
 | Betrag | Den Geldbetrag in Euro eingeben |
 | Internes Konto | Die Kategorie der Buchung (z. B. „103 – Beitrag lfd. Jahr") |
-| Mitglied | Optional: Welches Mitglied diese Buchung betrifft |
+| Mitglied | Bei Beitragsbuchungen (Konto 103) **Pflichtfeld**, sonst optional |
 | Beschreibung | Kurze Notiz (z. B. „Beitrag Müller Hans") |
 
 4. Auf **„Buchung speichern"** klicken
 
 > **Hinweis:** Die Belegnummer wird automatisch vergeben. Sie müssen sich darum nicht kümmern.
+
+#### Besonderheit: Beitragsbuchungen (Konto 103)
+
+Wenn Sie das interne Konto **„103 – Beitrag lfd. Jahr"** auswählen:
+- Das Feld **Mitglied** wird zur Pflichtangabe (roter Hinweis erscheint)
+- Der **Betrag** wird automatisch mit der hinterlegten Beitragshöhe des Buchungsjahres vorausgefüllt (falls eingetragen)
+- Nach dem Speichern wird das Mitglied automatisch als **„Beitrag bezahlt"** markiert
+
+#### Tipp: Grunddaten behalten
+
+Wenn Sie mehrere Buchungen hintereinander eingeben (z. B. Beiträge von mehreren Mitgliedern), aktivieren Sie die Checkbox **„Grunddaten behalten"** oben im Formular.
+
+Was bleibt nach dem Speichern erhalten:
+- Externes Konto, Internes Konto, Betrag und Beschreibung
+
+Was wird zurückgesetzt:
+- Datum (auf heute), Mitglied und Referenz-Buchungsnummer
+
+So müssen Sie nur das Mitglied neu auswählen und können sofort die nächste Buchung speichern.
 
 ### Buchungsliste
 
@@ -346,7 +378,7 @@ Im Menü unten auf **„Mein Profil"** klicken.
 ## 10. Häufige Fragen (FAQ)
 
 **F: Ich habe mein Passwort vergessen. Was nun?**  
-A: Sprechen Sie den Administrator an. Er kann Ihnen ein neues Einmalpasswort vergeben. Dann können Sie sich einloggen und sofort in Ihrem Profil ein neues Passwort setzen.
+A: Klicken Sie auf der Login-Seite auf **„Passwort vergessen?"**, geben Sie Ihren Benutzernamen oder Ihre E-Mail ein und klicken Sie auf „Anfrage senden". Der Administrator wird automatisch benachrichtigt und meldet sich bei Ihnen. Alternativ können Sie den Administrator direkt ansprechen — er kann über die Benutzerverwaltung ein neues Passwort setzen und es Ihnen telefonisch mitteilen.
 
 **F: Ich sehe bestimmte Menüpunkte nicht oder sie sind ausgegraut. Warum?**  
 A: Das liegt an Ihrer Rolle. Als Mitglied sehen Sie zum Beispiel keine Buchungen. Ausgegrauete Punkte bedeuten: Sie dürfen die Seite lesen, aber nicht bearbeiten. Nicht sichtbare Punkte sind für Ihre Rolle nicht vorgesehen. Der Administrator kann die Rolle anpassen wenn nötig.

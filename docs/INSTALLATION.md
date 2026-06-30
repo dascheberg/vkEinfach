@@ -17,8 +17,10 @@
 7. [Domain einrichten](#7-domain-einrichten)
 8. [Setup-Wizard durchlaufen](#8-setup-wizard-durchlaufen)
 9. [E-Mail (SMTP) konfigurieren](#9-e-mail-smtp-konfigurieren)
-10. [Lokale Entwicklungsumgebung](#10-lokale-entwicklungsumgebung)
-11. [Backup-Empfehlungen](#11-backup-empfehlungen)
+10. [Anpassungen nach dem Setup](#10-anpassungen-nach-dem-setup)
+11. [Lokale Entwicklungsumgebung](#11-lokale-entwicklungsumgebung)
+12. [Upgrade einer bestehenden Installation](#12-upgrade-einer-bestehenden-installation)
+13. [Backup-Empfehlungen](#13-backup-empfehlungen)
 
 ---
 
@@ -303,7 +305,27 @@ Nach dem Speichern auf **„Verbindung testen"** klicken. Bei Erfolg erhalten Si
 
 ---
 
-## 10. Lokale Entwicklungsumgebung
+## 10. Anpassungen nach dem Setup
+
+### „Passwort vergessen?" — Empfänger-E-Mail anpassen
+
+Wenn ein Benutzer auf der Login-Seite auf **„Passwort vergessen?"** klickt, sendet die App eine Benachrichtigung an eine fest hinterlegte Administrator-E-Mail-Adresse.
+
+Diese Adresse muss einmalig im Code angepasst werden:
+
+1. Datei öffnen: `src/app/api/forgot-password/route.ts`
+2. Zeile suchen:
+   ```ts
+   const ADMIN_EMAIL = "ihre-admin@meinverein.de";
+   ```
+3. E-Mail-Adresse durch die eigene ersetzen und speichern
+4. Deployment in Vercel neu starten (Push auf main-Branch)
+
+> **Hinweis:** Ohne diesen Schritt gehen Passwort-Vergessen-Anfragen an die falsche Adresse.
+
+---
+
+## 11. Lokale Entwicklungsumgebung
 
 Für Entwickler die am Code arbeiten möchten:
 
@@ -347,7 +369,54 @@ npx drizzle-kit studio
 
 ---
 
-## 11. Backup-Empfehlungen
+## 12. Upgrade einer bestehenden Installation
+
+Wenn Sie eine ältere vkEinfach-Installation auf eine neue Version aktualisieren, müssen neben dem Code-Update ggf. auch Datenbankspalten hinzugefügt werden.
+
+### Code aktualisieren
+
+```bash
+# Neuesten Code holen (im geklonten Repository)
+git pull origin main
+
+# Abhängigkeiten aktualisieren
+npm install --legacy-peer-deps
+```
+
+Danach in Vercel neu deployen (automatisch wenn GitHub verbunden, sonst manuell über Vercel-Dashboard).
+
+### Datenbank-Migrationen ausführen
+
+Neue Versionen können neue Datenbankspalten erfordern. Diese werden **nicht automatisch** eingespielt — sie müssen manuell im Neon SQL Editor ausgeführt werden.
+
+#### Version Juni 2026 — erforderliche Migrationen
+
+Folgende SQL-Statements im Neon SQL Editor ausführen, wenn Sie von einer Version vor Juni 2026 aktualisieren:
+
+```sql
+-- Beitragshöhe je Buchungsjahr
+ALTER TABLE fiscal_years
+  ADD COLUMN IF NOT EXISTS membership_fee numeric(10,2);
+
+-- Umfrage-Abstimmung: Verknüpfung mit User-Account statt nur Mitglied
+ALTER TABLE survey_votes
+  ALTER COLUMN member_id DROP NOT NULL;
+
+ALTER TABLE survey_votes
+  ADD COLUMN IF NOT EXISTS user_id text;
+```
+
+> **Woran erkenne ich ob die Migration nötig ist?** Wenn nach dem Code-Update die Buchungsseite (`/transactions`) einen Server-Error zeigt, fehlen wahrscheinlich die neuen Spalten. Die SQL-Statements beheben das.
+
+### Reihenfolge beim Upgrade
+
+1. Datenbank-Migration in Neon ausführen
+2. Code-Update deployen (oder lokal neu starten)
+3. App aufrufen und Funktion prüfen
+
+---
+
+## 13. Backup-Empfehlungen
 
 ### Automatische Backups (Neon)
 
@@ -396,3 +465,6 @@ Wenn Wert `true` ist: `UPDATE settings SET value = 'false' WHERE key = 'setup_co
 
 **E-Mail kommt nicht an**  
 → Spam-Ordner prüfen. SMTP-Einstellungen in der App testen. Bei Gmail: App-Passwort statt normalem Passwort verwenden.
+
+**Buchungsseite zeigt Server-Error nach Code-Update**  
+→ Wahrscheinlich fehlen neue Datenbankspalten. SQL-Migrationen aus [Abschnitt 12](#12-upgrade-einer-bestehenden-installation) im Neon SQL Editor ausführen.
