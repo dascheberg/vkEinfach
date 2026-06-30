@@ -189,7 +189,8 @@ export const surveyVotes = pgTable("survey_votes", {
   id:       serial("id").primaryKey(),
   surveyId: integer("survey_id").notNull().references(() => surveys.id),
   optionId: integer("option_id").notNull().references(() => surveyOptions.id),
-  memberId: integer("member_id").notNull().references(() => members.id),
+  memberId: integer("member_id").references(() => members.id),
+  userId:   text("user_id"),
   votedAt:  timestamp("voted_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

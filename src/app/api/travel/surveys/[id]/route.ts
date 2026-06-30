@@ -35,23 +35,33 @@ export async function GET(
     .where(eq(surveyOptions.surveyId, surveyId))
     .orderBy(asc(surveyOptions.sortOrder));
 
-  // Find member_id for current user (to check if already voted)
+  const userId = session.user.id;
   const userEmail = session.user.email;
-  const [member] = await db
-    .select({ id: members.id })
-    .from(members)
-    .where(eq(members.email, userEmail));
 
+  // Check existing vote: first by userId (new votes), then by memberId (legacy votes)
   let myVoteOptionId: number | null = null;
-  if (member) {
-    const [myVote] = await db
-      .select({ optionId: surveyVotes.optionId })
-      .from(surveyVotes)
-      .where(and(eq(surveyVotes.memberId, member.id), eq(surveyVotes.surveyId, surveyId)));
-    myVoteOptionId = myVote?.optionId ?? null;
+
+  const [myVoteByUser] = await db
+    .select({ optionId: surveyVotes.optionId })
+    .from(surveyVotes)
+    .where(and(eq(surveyVotes.surveyId, surveyId), eq(surveyVotes.userId, userId)));
+  if (myVoteByUser) {
+    myVoteOptionId = myVoteByUser.optionId;
+  } else if (userEmail) {
+    const [member] = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(eq(members.email, userEmail));
+    if (member) {
+      const [myVoteByMember] = await db
+        .select({ optionId: surveyVotes.optionId })
+        .from(surveyVotes)
+        .where(and(eq(surveyVotes.memberId, member.id), eq(surveyVotes.surveyId, surveyId)));
+      myVoteOptionId = myVoteByMember?.optionId ?? null;
+    }
   }
 
-  return NextResponse.json({ ...survey, options, myVoteOptionId, canVote: !!member });
+  return NextResponse.json({ ...survey, options, myVoteOptionId, canVote: true });
 }
 
 export async function PATCH(
