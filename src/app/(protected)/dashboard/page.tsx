@@ -178,16 +178,18 @@ export default async function DashboardPage() {
 
       {/* Schnellzugriff + PDF-Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
-        <div className="card bg-base-100 shadow">
-          <div className="card-body">
-            <h2 className="card-title text-xl">Schnellzugriff</h2>
-            <div className="flex flex-col gap-2 mt-2">
-              <Link href="/members"      className="btn btn-outline text-base">Mitgliederliste</Link>
-              <Link href="/transactions" className="btn btn-outline text-base">Buchungen</Link>
-              <Link href="/reports"      className="btn btn-outline text-base">Auswertungen</Link>
+        {role !== "member" && (
+          <div className="card bg-base-100 shadow">
+            <div className="card-body">
+              <h2 className="card-title text-xl">Schnellzugriff</h2>
+              <div className="flex flex-col gap-2 mt-2">
+                <Link href="/members"      className="btn btn-outline text-base">Mitgliederliste</Link>
+                <Link href="/transactions" className="btn btn-outline text-base">Buchungen</Link>
+                <Link href="/reports"      className="btn btn-outline text-base">Auswertungen</Link>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="card bg-base-100 shadow">
           <div className="card-body">
