@@ -65,14 +65,9 @@ export async function POST(req: NextRequest) {
     userFunction: newFunction ?? "M",
     approved: approve === true,
   };
-  if (uname?.trim()) updates.username = uname.trim();
+  if (uname?.trim()) updates.username = uname.trim().toLowerCase();
 
   await db.update(user).set(updates).where(eq(user.email, effectiveEmail));
-
-  // Set username in Better Auth account if username provided
-  if (uname?.trim()) {
-    await db.update(user).set({ username: uname.trim() }).where(eq(user.email, effectiveEmail));
-  }
 
   const [newUser] = await db
     .select({ id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, function: user.userFunction, banned: user.banned, approved: user.approved, createdAt: user.createdAt })

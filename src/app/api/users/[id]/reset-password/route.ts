@@ -48,11 +48,7 @@ export async function POST(
   const tempPassword = generatePassword();
   const hashed = await hashPassword(tempPassword);
 
-  await db
-    .update(account)
-    .set({ password: hashed })
-    .where(and(eq(account.userId, targetId), eq(account.providerId, "credential")));
-
+  // Send email FIRST — only update DB if email succeeds
   try {
     await sendMail({
       to: targetUser.email,
@@ -67,10 +63,15 @@ export async function POST(
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Fehler";
     return NextResponse.json(
-      { error: `Passwort zurückgesetzt, E-Mail konnte nicht gesendet werden: ${msg}` },
+      { error: `E-Mail konnte nicht gesendet werden — Passwort wurde NICHT geändert: ${msg}` },
       { status: 500 }
     );
   }
+
+  await db
+    .update(account)
+    .set({ password: hashed })
+    .where(and(eq(account.userId, targetId), eq(account.providerId, "credential")));
 
   return NextResponse.json({ ok: true });
 }

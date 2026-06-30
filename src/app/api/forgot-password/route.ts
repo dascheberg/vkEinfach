@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/utils/settings";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_EMAIL = "scda@scsschmalfeld.org";
+const ADMIN_EMAIL = "scda@scschmalfeld.org";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();

@@ -112,7 +112,7 @@ export async function importUsers(
     }
 
     // Generate unique username
-    let baseUsername = row.username?.trim() || generateUsername(name);
+    let baseUsername = (row.username?.trim() || generateUsername(name)).toLowerCase();
     let username = baseUsername;
     let suffix = 2;
     while (existingUsernames.has(username.toLowerCase())) {

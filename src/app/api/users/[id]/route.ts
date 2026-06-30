@@ -37,7 +37,7 @@ export async function PUT(
   if (body.approved  !== undefined) userUpdates.approved     = body.approved;
   if (body.name      !== undefined) userUpdates.name         = body.name.trim();
   if (body.email     !== undefined) userUpdates.email        = body.email.trim().toLowerCase();
-  if (body.username  !== undefined) userUpdates.username     = body.username?.trim() || null;
+  if (body.username  !== undefined) userUpdates.username     = body.username?.trim().toLowerCase() || null;
   if (body.function  !== undefined) userUpdates.userFunction = body.function?.trim() || "M";
 
   // Validate email uniqueness
