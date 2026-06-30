@@ -215,10 +215,29 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
   - Alle clientseitig via useMemo — kein zusätzlicher API-Aufruf
   - Drei Passwort-Buttons je User: Reset-Mail (nur mit E-Mail, ConfirmModal) / Passwort setzen / Temp-Passwort
   - Temp-Passwort: Format 2 Großbuchstaben + 4 Ziffern + 2 Kleinbuchstaben (z.B. "AB4712cd"), EINMALIG im Modal
-- Login-Seite: "Passwort vergessen" dynamisch:
-  - Mit @ im Eingabefeld → Link /forgot-password sichtbar
-  - Ohne @ (Benutzername) → Hinweis "Bitte den Administrator kontaktieren"
-  - Nur angezeigt wenn Eingabefeld nicht leer
+- Login-Seite: "Passwort vergessen?" immer sichtbar als Button:
+  - Klick → inline Formular (Identifier vorausgefüllt)
+  - POST /api/forgot-password → Benachrichtigungs-Mail an scda@scsschmalfeld.org
+  - Mail enthält: Name, Benutzername, E-Mail des gesuchten Users + Zeitstempel
+  - SMTP muss in /settings konfiguriert sein
+- Buchungsformular /transactions/neu: "Grunddaten behalten" Checkbox:
+  - Wenn aktiv: ext. Konto, int. Konto, Betrag, Beschreibung bleiben nach Speichern erhalten
+  - Nur Datum (heute), Mitglied und Referenz-BN werden zurückgesetzt
+  - Wenn inaktiv: kompletter Reset wie bisher
+- Buchungsformular: Konto-103-Logik (Beitrag laufendes Jahr):
+  - Mitglied wird Pflichtfeld wenn Konto 103 gewählt (Fehlermeldung + visueller Hinweis)
+  - Betrag wird automatisch mit membership_fee des aktiven Buchungsjahres vorausgefüllt
+  - Nach Speichern: members.feePaidCurrentYear = true für gewähltes Mitglied (serverseitig)
+- Buchungsjahre /fiscal-years: erweitert um:
+  - Feld membership_fee (Beitragshöhe €) — optional, in Tabelle + Formular
+  - Bearbeiten-Button je Zeile → DaisyUI-Modal mit allen Feldern (label, dateFrom, dateTo, membershipFee, notes)
+  - SQL: ALTER TABLE fiscal_years ADD COLUMN IF NOT EXISTS membership_fee numeric(10,2);
+- Umfrage-Abstimmung Bug-Fix:
+  - survey_votes.member_id ist jetzt nullable (war NOT NULL)
+  - Neues Feld survey_votes.user_id text — Deduplication über eingeloggte Session (user.id)
+  - Abstimmung für alle eingeloggten User möglich, unabhängig von members-Datensatz
+  - SQL: ALTER TABLE survey_votes ALTER COLUMN member_id DROP NOT NULL;
+  -       ALTER TABLE survey_votes ADD COLUMN IF NOT EXISTS user_id text;
 
 ### Offen — Reihenfolge
 
@@ -1048,11 +1067,13 @@ Wenn ein Mitglied kein E-Mail hat und sein Passwort vergessen hat:
 - Lösung: Admin nutzt "Temp-Passwort" Button → teilt es telefonisch mit
 - Mitglied loggt sich ein → ändert Passwort in /profile
 
-"Passwort vergessen" auf Login-Seite (umgesetzt in src/app/login/page.tsx):
-- Eingabefeld enthält @: Link "Passwort vergessen?" → /forgot-password anzeigen
-- Eingabefeld ohne @ (Benutzername): grauer Text "Passwort vergessen? Bitte den Administrator kontaktieren."
-- Eingabefeld leer: gar nichts anzeigen
-- isEmail = identifier.includes("@") wird auf Komponentenebene berechnet (reaktiv)
+"Passwort vergessen?" auf Login-Seite (umgesetzt in src/app/login/page.tsx):
+- Immer sichtbarer Button unterhalb des Login-Formulars
+- Klick → Ansicht wechselt zu Inline-Formular mit Identifier-Eingabe (vorausgefüllt falls getippt)
+- "Anfrage senden" → POST /api/forgot-password mit { identifier }
+- API sendet Benachrichtigungs-Mail an scda@scsschmalfeld.org (kein Passwort-Reset-Link!)
+- Admin setzt Passwort manuell über /users → "Temp-Passwort" oder "Passwort setzen"
+- Ohne E-Mail (Benutzername): funktioniert genauso — Admin wird benachrichtigt
 
 ### Rollen-Anzeige in der UI (ROLE_LABELS)
 
@@ -1086,6 +1107,8 @@ Admin-Operationen (Rolle setzen, User auflisten).
 - POST /api/users/[id]/reset-password      — Temp-Passwort per E-Mail senden (nur wenn E-Mail vorhanden)
 - POST /api/users/[id]/set-password        — Passwort direkt setzen (Admin gibt neues Passwort ein)
 - POST /api/users/[id]/temp-password       — Zufälliges Temp-Passwort generieren + setzen, zurückgeben
+- POST /api/forgot-password                — öffentlich (kein Auth); sucht User per E-Mail/Username;
+                                             sendet Benachrichtigungs-Mail an scda@scsschmalfeld.org
 
 ### Sicherheit
 
@@ -2003,6 +2026,19 @@ src/
     seed-test-data.ts               <- Phase 6
 ```
 
+## Ausstehende DB-Migrationen (in Neon ausführen)
+
+Alle ALTER TABLE-Befehle sind idempotent (IF NOT EXISTS / IF EXISTS). Können jederzeit wiederholt werden.
+
+```sql
+-- Beitragshöhe je Buchungsjahr (Feature 2, 2025-06)
+ALTER TABLE fiscal_years ADD COLUMN IF NOT EXISTS membership_fee numeric(10,2);
+
+-- Umfrage-Abstimmung: alle eingeloggten User dürfen abstimmen (Bug-Fix, 2025-06)
+ALTER TABLE survey_votes ALTER COLUMN member_id DROP NOT NULL;
+ALTER TABLE survey_votes ADD COLUMN IF NOT EXISTS user_id text;
+```
+
 ## Datenbank-Tabellen
 
 | Tabelle             | Beschreibung                                                          |
@@ -2011,14 +2047,14 @@ src/
 | guests              | Gäste (id, last_name, first_name, contact_info, notes)               |
 | external_accounts   | Externe Konten max. 5, current_balance nicht mehr aktuell!           |
 | internal_accounts   | Interne Konten, Nummernkreis konfigurierbar (default 100-999)        |
-| fiscal_years        | Buchungsjahre (label, date_from, date_to, is_active, is_closed)      |
+| fiscal_years        | Buchungsjahre (label, date_from, date_to, is_active, is_closed, membership_fee) |
 | transactions        | Buchungen (id != receipt_number!)                                     |
 | receipts            | Scan-Belege: file_path + storage_type (local/nas/cloud)              |
 | travels             | Reisen (erweitert um date_from/to, min/max_participants, description) |
 | travel_participants | Teilnehmer (is_registered + is_paid als Booleans)                    |
 | surveys             | Umfragen für Reisewahl (selbst gebaut)                               |
 | survey_options      | Umfrage-Optionen                                                      |
-| survey_votes        | Abstimmungen (je Mitglied eine Stimme)                               |
+| survey_votes        | Abstimmungen (user_id aus Session; member_id nullable für Legacy-Daten) |
 | settings            | App-Einstellungen (key/value), inkl. setup_complete                  |
 | user                | Better Auth User (role, username, approved, function — E-Mail optional) |
 | session             | Better Auth Session                                                   |
