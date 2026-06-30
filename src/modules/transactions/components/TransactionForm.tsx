@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const KIND_LABEL: Record<string, string> = {
@@ -48,7 +48,7 @@ interface Props {
   internalAccounts: InternalAccount[];
   members: Member[];
   externalBalances: Record<number, number>;
-  activeFiscalYear: { id: number; label: string; isClosed: boolean };
+  activeFiscalYear: { id: number; label: string; isClosed: boolean; membershipFee?: string | null };
 }
 
 interface FormState {
@@ -86,11 +86,24 @@ export default function TransactionForm({
   const today  = new Date().toISOString().split("T")[0];
 
   const [form, setForm]               = useState<FormState>(() => defaultForm(today, externalAccounts));
+  const [keepBase, setKeepBase]       = useState(false);
   const [saving, setSaving]           = useState(false);
   const [error,  setError]            = useState("");
   const [lastReceipt, setLastReceipt] = useState<string | null>(null);
 
   const filteredInternal = filterByDirection(internalAccounts, form.direction);
+
+  // Konto 103 ermitteln (Beitrag laufendes Jahr)
+  const selectedIntAccount = internalAccounts.find((a) => String(a.id) === form.internalAccountId);
+  const isKonto103 = selectedIntAccount?.number === 103;
+
+  // Bei Wechsel auf Konto 103: Betrag automatisch mit membership_fee vorausfüllen
+  useEffect(() => {
+    if (isKonto103 && !form.amount && activeFiscalYear.membershipFee) {
+      const fee = parseFloat(activeFiscalYear.membershipFee);
+      if (fee > 0) setForm((f) => ({ ...f, amount: fee.toFixed(2) }));
+    }
+  }, [form.internalAccountId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setDirection(dir: "in" | "out") {
     const newFiltered = filterByDirection(internalAccounts, dir);
@@ -115,6 +128,10 @@ export default function TransactionForm({
     }
     if (parseFloat(form.amount) <= 0) {
       setError("Betrag muss größer als 0 sein.");
+      return;
+    }
+    if (isKonto103 && !form.memberId) {
+      setError("Bei Beitragsbuchungen muss ein Mitglied ausgewählt werden.");
       return;
     }
     setSaving(true);
@@ -145,11 +162,17 @@ export default function TransactionForm({
         return;
       }
       const saved = await res.json();
-      setForm((f) => ({
-        ...defaultForm(f.bookingDate, externalAccounts),
-        externalAccountId: f.externalAccountId,
-        direction:         f.direction,
-      }));
+      if (keepBase) {
+        // Grunddaten behalten: nur Datum, Mitglied und Referenz zurücksetzen
+        setForm((f) => ({
+          ...f,
+          bookingDate:        today,
+          memberId:           "",
+          referenceBookingNo: "",
+        }));
+      } else {
+        setForm(defaultForm(today, externalAccounts));
+      }
       setLastReceipt(saved.receiptNumber ?? null);
       router.refresh();
     } finally {
@@ -160,6 +183,17 @@ export default function TransactionForm({
   return (
     <div className="max-w-xl">
       <div className="flex flex-col gap-5">
+
+        {/* Grunddaten behalten */}
+        <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-primary"
+            checked={keepBase}
+            onChange={(e) => setKeepBase(e.target.checked)}
+          />
+          <span className="text-base">Grunddaten behalten (Konto, Betrag, Beschreibung bleiben nach Speichern erhalten)</span>
+        </label>
 
         {/* Buchungsjahr-Info */}
         <div className="flex items-center gap-2 text-base text-base-content/60">
@@ -281,14 +315,21 @@ export default function TransactionForm({
 
         {/* Mitglied */}
         <div className="form-control">
-          <label className="label" htmlFor="memberId"><span className="label-text text-base">Mitglied (optional)</span></label>
+          <label className="label" htmlFor="memberId">
+            <span className="label-text text-base">
+              Mitglied {isKonto103 ? <span className="text-error">*</span> : "(optional)"}
+            </span>
+            {isKonto103 && (
+              <span className="label-text-alt text-base text-warning">Pflicht bei Beitragsbuchungen</span>
+            )}
+          </label>
           <select
             id="memberId"
-            className="select select-bordered text-base"
+            className={`select select-bordered text-base ${isKonto103 && !form.memberId ? "select-warning" : ""}`}
             value={form.memberId}
             onChange={(e) => setForm({ ...form, memberId: e.target.value })}
           >
-            <option value="">— kein Mitglied —</option>
+            <option value="">— {isKonto103 ? "bitte Mitglied wählen" : "kein Mitglied"} —</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.lastName}, {m.firstName}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fiscalYears } from "@/lib/db/schema";
-import { asc, eq } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -38,15 +38,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Beginn muss vor Ende liegen." }, { status: 400 });
     }
 
+    const fee = body.membershipFee ? parseFloat(String(body.membershipFee).replace(",", ".")) : null;
+
     const [row] = await db
       .insert(fiscalYears)
       .values({
-        label:    body.label.trim(),
-        dateFrom: body.dateFrom,
-        dateTo:   body.dateTo,
-        isActive: false,
-        isClosed: false,
-        notes:    body.notes?.trim() || null,
+        label:         body.label.trim(),
+        dateFrom:      body.dateFrom,
+        dateTo:        body.dateTo,
+        isActive:      false,
+        isClosed:      false,
+        notes:         body.notes?.trim() || null,
+        membershipFee: fee !== null && !isNaN(fee) && fee > 0 ? String(fee.toFixed(2)) : null,
       })
       .returning();
 

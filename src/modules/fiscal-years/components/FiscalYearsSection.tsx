@@ -18,6 +18,7 @@ interface FiscalYear {
   isActive: boolean;
   isClosed: boolean;
   notes: string | null;
+  membershipFee: string | null;
 }
 
 interface FormState {
@@ -25,9 +26,10 @@ interface FormState {
   dateFrom: string;
   dateTo: string;
   notes: string;
+  membershipFee: string;
 }
 
-const emptyForm: FormState = { label: "", dateFrom: "", dateTo: "", notes: "" };
+const emptyForm: FormState = { label: "", dateFrom: "", dateTo: "", notes: "", membershipFee: "" };
 
 interface Props {
   initialYears: FiscalYear[];
@@ -62,7 +64,11 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
       const res = await fetch("/api/fiscal-years", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ ...form, label: form.label.trim() }),
+        body:    JSON.stringify({
+          ...form,
+          label:         form.label.trim(),
+          membershipFee: form.membershipFee || null,
+        }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -160,6 +166,21 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
                 />
               </div>
               <div className="form-control">
+                <label className="label" htmlFor="fy-fee">
+                  <span className="label-text text-base">Aktueller Beitrag (€)</span>
+                </label>
+                <input
+                  id="fy-fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input input-bordered text-base"
+                  placeholder="z. B. 20.00"
+                  value={form.membershipFee}
+                  onChange={(e) => setForm({ ...form, membershipFee: e.target.value })}
+                />
+              </div>
+              <div className="form-control">
                 <label className="label" htmlFor="fy-notes">
                   <span className="label-text text-base">Notizen</span>
                 </label>
@@ -222,6 +243,7 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
                 <th>Bezeichnung</th>
                 <th>Beginn</th>
                 <th>Ende</th>
+                <th>Beitrag</th>
                 <th>Status</th>
                 {isAdmin && <th>Aktionen</th>}
               </tr>
@@ -232,6 +254,11 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
                   <td className="font-semibold">{fy.label}</td>
                   <td>{formatDate(fy.dateFrom)}</td>
                   <td>{formatDate(fy.dateTo)}</td>
+                  <td className="font-mono">
+                    {fy.membershipFee
+                      ? new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(parseFloat(fy.membershipFee))
+                      : <span className="text-base-content/40">—</span>}
+                  </td>
                   <td>
                     <div className="flex flex-wrap gap-2">
                       {fy.isActive && <span className="badge badge-success text-base">Aktiv</span>}

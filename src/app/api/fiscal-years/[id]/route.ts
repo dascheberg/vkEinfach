@@ -28,9 +28,21 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       await db.update(fiscalYears).set({ isActive: false });
     }
 
+    const updateData: Partial<typeof fiscalYears.$inferInsert> = {};
+    if (body.isActive  !== undefined) updateData.isActive  = body.isActive;
+    if (body.isClosed  !== undefined) updateData.isClosed  = body.isClosed;
+    if (body.notes     !== undefined) updateData.notes     = body.notes     || null;
+    if (body.label     !== undefined) updateData.label     = body.label;
+    if (body.dateFrom  !== undefined) updateData.dateFrom  = body.dateFrom;
+    if (body.dateTo    !== undefined) updateData.dateTo    = body.dateTo;
+    if (body.membershipFee !== undefined) {
+      const fee = body.membershipFee ? parseFloat(String(body.membershipFee).replace(",", ".")) : null;
+      updateData.membershipFee = fee !== null && !isNaN(fee) && fee > 0 ? String(fee.toFixed(2)) : null;
+    }
+
     const [row] = await db
       .update(fiscalYears)
-      .set({ ...body })
+      .set(updateData)
       .where(eq(fiscalYears.id, fyId))
       .returning();
 

@@ -75,7 +75,12 @@ export default async function NewTransactionPage() {
         internalAccounts={intAccounts}
         members={memberList}
         externalBalances={externalBalances}
-        activeFiscalYear={{ id: activeFY.id, label: activeFY.label, isClosed: activeFY.isClosed }}
+        activeFiscalYear={{
+          id:            activeFY.id,
+          label:         activeFY.label,
+          isClosed:      activeFY.isClosed,
+          membershipFee: activeFY.membershipFee ?? null,
+        }}
       />
     </div>
   );

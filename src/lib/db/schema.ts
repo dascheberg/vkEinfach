@@ -75,14 +75,15 @@ export const internalAccounts = pgTable("internal_accounts", {
 // BUCHUNGSJAHRE
 // ─────────────────────────────────────────────
 export const fiscalYears = pgTable("fiscal_years", {
-  id:        serial("id").primaryKey(),
-  label:     varchar("label", { length: 50 }).notNull(),   // z.B. "2026"
-  dateFrom:  date("date_from").notNull(),
-  dateTo:    date("date_to").notNull(),
-  isActive:  boolean("is_active").default(false).notNull(),
-  isClosed:  boolean("is_closed").default(false).notNull(),
-  notes:     text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  id:            serial("id").primaryKey(),
+  label:         varchar("label", { length: 50 }).notNull(),   // z.B. "2026"
+  dateFrom:      date("date_from").notNull(),
+  dateTo:        date("date_to").notNull(),
+  isActive:      boolean("is_active").default(false).notNull(),
+  isClosed:      boolean("is_closed").default(false).notNull(),
+  notes:         text("notes"),
+  membershipFee: numeric("membership_fee", { precision: 10, scale: 2 }),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ─────────────────────────────────────────────

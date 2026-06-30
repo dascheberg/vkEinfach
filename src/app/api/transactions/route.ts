@@ -97,6 +97,8 @@ export async function POST(req: NextRequest) {
     // Belegnummer generieren
     const receiptNumber = await getNextReceiptNumber(fiscalYearId);
 
+    const memberId = body.memberId ? parseInt(body.memberId) : null;
+
     // Buchung einfügen
     const [newTransaction] = await db
       .insert(transactions)
@@ -108,12 +110,30 @@ export async function POST(req: NextRequest) {
         direction,
         externalAccountId:  extId,
         internalAccountId:  intId,
-        memberId:           body.memberId           ? parseInt(body.memberId) : null,
+        memberId,
         referenceBookingNo: body.referenceBookingNo || null,
         description:        body.description        || null,
         createdBy:          1,
       })
       .returning();
+
+    // Konto 103 (Beitrag laufendes Jahr): feePaidCurrentYear automatisch setzen
+    if (memberId) {
+      try {
+        const [intAcc] = await db
+          .select({ number: internalAccounts.number })
+          .from(internalAccounts)
+          .where(eq(internalAccounts.id, intId));
+        if (intAcc?.number === 103) {
+          await db
+            .update(members)
+            .set({ feePaidCurrentYear: true })
+            .where(eq(members.id, memberId));
+        }
+      } catch (e) {
+        console.error("feePaidCurrentYear Update fehlgeschlagen:", e);
+      }
+    }
 
     return NextResponse.json(newTransaction, { status: 201 });
   } catch (e) {
