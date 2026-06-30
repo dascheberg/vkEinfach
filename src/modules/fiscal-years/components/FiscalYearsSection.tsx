@@ -43,6 +43,13 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
 
+  // Edit dialog state
+  const editRef                              = useRef<HTMLDialogElement>(null);
+  const [editingFY,   setEditingFY]          = useState<FiscalYear | null>(null);
+  const [editForm,    setEditForm]           = useState<FormState>(emptyForm);
+  const [editSaving,  setEditSaving]         = useState(false);
+  const [editError,   setEditError]          = useState("");
+
   // Carry-over dialog state
   const carryOverRef                              = useRef<HTMLDialogElement>(null);
   const [carryOverSource, setCarryOverSource]     = useState<FiscalYear | null>(null);
@@ -80,6 +87,55 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
       router.refresh();
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openEditDialog(fy: FiscalYear) {
+    setEditingFY(fy);
+    setEditForm({
+      label:         fy.label,
+      dateFrom:      fy.dateFrom,
+      dateTo:        fy.dateTo,
+      notes:         fy.notes ?? "",
+      membershipFee: fy.membershipFee ?? "",
+    });
+    setEditError("");
+    editRef.current?.showModal();
+  }
+
+  async function handleEdit() {
+    if (!editingFY) return;
+    if (!editForm.label.trim() || !editForm.dateFrom || !editForm.dateTo) {
+      setEditError("Bezeichnung, Beginn und Ende sind erforderlich.");
+      return;
+    }
+    if (editForm.dateFrom >= editForm.dateTo) {
+      setEditError("Beginn muss vor Ende liegen.");
+      return;
+    }
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const res = await fetch(`/api/fiscal-years/${editingFY.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          label:         editForm.label.trim(),
+          dateFrom:      editForm.dateFrom,
+          dateTo:        editForm.dateTo,
+          notes:         editForm.notes || null,
+          membershipFee: editForm.membershipFee || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setEditError(data.error ?? "Fehler beim Speichern.");
+        return;
+      }
+      editRef.current?.close();
+      router.refresh();
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -271,6 +327,13 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
                   {isAdmin && (
                     <td>
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs text-base"
+                          onClick={() => openEditDialog(fy)}
+                        >
+                          Bearbeiten
+                        </button>
                         {!fy.isActive && !fy.isClosed && (
                           <ConfirmModal
                             title="Als aktives Buchungsjahr setzen"
@@ -320,6 +383,80 @@ export default function FiscalYearsSection({ initialYears, isAdmin }: Props) {
           </table>
         </div>
       )}
+
+      {/* Edit-Dialog */}
+      <dialog ref={editRef} className="modal">
+        <div className="modal-box max-w-lg">
+          <h3 className="text-xl font-bold mb-4">Buchungsjahr bearbeiten</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label"><span className="label-text text-base">Bezeichnung *</span></label>
+              <input
+                type="text"
+                className="input input-bordered text-base"
+                value={editForm.label}
+                onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label"><span className="label-text text-base">Aktueller Beitrag (€)</span></label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input input-bordered text-base"
+                placeholder="z. B. 20.00"
+                value={editForm.membershipFee}
+                onChange={(e) => setEditForm({ ...editForm, membershipFee: e.target.value })}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label"><span className="label-text text-base">Beginn *</span></label>
+              <input
+                type="date"
+                className="input input-bordered text-base"
+                value={editForm.dateFrom}
+                onChange={(e) => setEditForm({ ...editForm, dateFrom: e.target.value })}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label"><span className="label-text text-base">Ende *</span></label>
+              <input
+                type="date"
+                className="input input-bordered text-base"
+                value={editForm.dateTo}
+                onChange={(e) => setEditForm({ ...editForm, dateTo: e.target.value })}
+              />
+            </div>
+            <div className="form-control sm:col-span-2">
+              <label className="label"><span className="label-text text-base">Notizen</span></label>
+              <input
+                type="text"
+                className="input input-bordered text-base"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          {editError && <p className="text-error text-base mt-3">{editError}</p>}
+          <div className="modal-action">
+            <button
+              type="button"
+              className="btn btn-primary text-base"
+              disabled={editSaving}
+              onClick={handleEdit}
+            >
+              {editSaving ? "Wird gespeichert…" : "Speichern"}
+            </button>
+            <form method="dialog">
+              <button type="submit" className="btn text-base">Abbrechen</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button type="submit">close</button>
+        </form>
+      </dialog>
 
       {/* Übertrag-Dialog */}
       <dialog ref={carryOverRef} className="modal">
