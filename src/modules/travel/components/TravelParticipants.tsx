@@ -148,7 +148,19 @@ export default function TravelParticipants({ travelId, maxParticipants, ownContr
       )}
 
       {/* Teilnehmertabelle */}
-      <h3 className="text-base font-bold mb-3">Teilnehmer ({participants.length})</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-bold">Teilnehmer ({participants.length})</h3>
+        {participants.length > 0 && (
+          <a
+            href={`/api/travel/${travelId}/participants/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost btn-sm text-base"
+          >
+            Teilnehmerliste (PDF)
+          </a>
+        )}
+      </div>
       {loading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner loading-md" />
