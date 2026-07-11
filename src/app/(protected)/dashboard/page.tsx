@@ -183,9 +183,10 @@ export default async function DashboardPage() {
             <div className="card-body">
               <h2 className="card-title text-xl">Schnellzugriff</h2>
               <div className="flex flex-col gap-2 mt-2">
-                <Link href="/members"      className="btn btn-outline text-base">Mitgliederliste</Link>
-                <Link href="/transactions" className="btn btn-outline text-base">Buchungen</Link>
-                <Link href="/reports"      className="btn btn-outline text-base">Auswertungen</Link>
+                <Link href="/members"           className="btn btn-outline text-base">Mitgliederliste</Link>
+                <Link href="/transactions"      className="btn btn-outline text-base">Buchungen</Link>
+                <Link href="/reports"           className="btn btn-outline text-base">Auswertungen</Link>
+                <Link href="/reports/birthdays" className="btn btn-outline text-base">Geburtstage im Zeitraum</Link>
               </div>
             </div>
           </div>

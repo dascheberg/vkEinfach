@@ -78,7 +78,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
       <p className="text-base text-base-content/60 mb-3">{list.length} Mitglieder</p>
 
       {/* Druckbare Listen */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="border border-base-200 rounded-box p-4 bg-base-100">
           <h3 className="text-base font-semibold mb-1">Geburtstage &amp; Jubiläen</h3>
           <p className="text-base text-base-content/60 mb-3">
@@ -96,6 +96,16 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
             />
             <button type="submit" className="btn btn-outline text-base flex-1">PDF öffnen</button>
           </form>
+        </div>
+
+        <div className="border border-base-200 rounded-box p-4 bg-base-100">
+          <h3 className="text-base font-semibold mb-1">Geburtstage im Zeitraum</h3>
+          <p className="text-base text-base-content/60 mb-3">
+            Geburtstage in einem frei wählbaren Zeitraum — mit CSV-&nbsp;/&nbsp;PDF-Export
+          </p>
+          <Link href="/reports/birthdays" className="btn btn-outline text-base w-full">
+            Auswertung öffnen
+          </Link>
         </div>
 
         <div className="border border-base-200 rounded-box p-4 bg-base-100">
