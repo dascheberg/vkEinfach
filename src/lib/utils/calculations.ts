@@ -28,6 +28,11 @@ export function isMemberAnniversary(years: number | null): boolean {
   return years >= 10 && years % 5 === 0;
 }
 
+export function dayMonthKey(dateStr: string): number {
+  const [, m, d] = dateStr.slice(0, 10).split("-").map(Number);
+  return m * 100 + d;
+}
+
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "–";
   const parts = dateStr.slice(0, 10).split("-").map(Number);

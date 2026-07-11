@@ -402,4 +402,4 @@ A: Nur die anderen Nutzer Ihrer Vereins-Instanz. Jeder Verein hat seine vollstä
 A: Einfach die Webadresse erneut aufrufen und sich normal einloggen. Für Sicherheit wird man nach längerer Inaktivität automatisch abgemeldet.
 
 **F: Kann ich Daten exportieren?**  
-A: Ja. Mitgliederlisten und Auswertungen können als PDF heruntergeladen werden. Ein direkter Excel-Export ist derzeit nicht verfügbar.
+A: Ja. Mitgliederlisten und Auswertungen können als PDF heruntergeladen werden. Ein direkter Excel-Export ist derzeit nicht verfügbar. 

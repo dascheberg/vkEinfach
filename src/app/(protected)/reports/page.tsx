@@ -132,6 +132,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
         <Link href="/reports/open-items"    className="btn btn-sm btn-outline text-base">Offene Posten</Link>
         <Link href="/reports/account-ledger" className="btn btn-sm btn-outline text-base">Kontenblatt</Link>
         <Link href="/reports/monthly"       className="btn btn-sm btn-outline text-base">Monatsbericht</Link>
+        <Link href="/reports/birthdays"     className="btn btn-sm btn-outline text-base">Geburtstage im Zeitraum</Link>
       </div>
 
       {/* Jahresfilter + PDF-Buttons */}
