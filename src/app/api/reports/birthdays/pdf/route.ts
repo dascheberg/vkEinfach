@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     doc.save().strokeColor("#000").lineWidth(1).moveTo(MARGIN, y).lineTo(MARGIN + COL_W, y).stroke().restore(); y += 12;
 
     // Table header
-    const C = { last: 200, first: 160, date: 110, age: 65 };
+    const C = { last: 160, first: 130, date: 90, age: 50 };
     doc.save().fillColor("#1e3a5f").rect(MARGIN, y, COL_W, 16).fill().restore();
     doc.font(FONT_B).fontSize(8).fillColor("#fff");
     let x = MARGIN + 4;
