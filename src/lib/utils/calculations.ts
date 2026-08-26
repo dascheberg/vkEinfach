@@ -10,7 +10,7 @@ export function calculateAge(birthDate: string | null | undefined): number | nul
 
 export function isRoundBirthday(age: number | null): boolean {
   if (age === null) return false;
-  return age >= 70 && age % 5 === 0;
+  return age >= 80 && age % 5 === 0;
 }
 
 export function calculateMemberYears(joinedAt: string | null | undefined): number | null {

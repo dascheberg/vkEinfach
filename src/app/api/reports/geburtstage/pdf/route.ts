@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
   const appSettings = await getSettings();
 
-  // Runde Geburtstage: Alter im Zieljahr ≥ 70 und durch 5 teilbar
+  // Runde Geburtstage: Alter im Zieljahr ≥ 80 und durch 5 teilbar
   // Sortiert nach Monat/Tag des Geburtstags
   const birthdayMembers = await db.select({
     lastName:  members.lastName,
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     eq(members.isActive, true),
     isNotNull(members.birthDate),
     sql`${members.birthDate} IS NOT NULL`,
-    sql`(${year} - EXTRACT(YEAR FROM ${members.birthDate})::INT) >= 70`,
+    sql`(${year} - EXTRACT(YEAR FROM ${members.birthDate})::INT) >= 80`,
     sql`(${year} - EXTRACT(YEAR FROM ${members.birthDate})::INT) % 5 = 0`,
   ))
   .orderBy(
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
 
     // ── Runde Geburtstage ─────────────────────────────────
     checkPageBreak(HEAD_H + ROW_H);
-    y = drawSectionHeader(doc, y, `Runde Geburtstage ${year}  (ab 70 Jahre, alle 5 Jahre)`);
+    y = drawSectionHeader(doc, y, `Runde Geburtstage ${year}  (ab 80 Jahre, alle 5 Jahre)`);
 
     if (birthdayMembers.length === 0) {
       doc.font(FONT_R).fontSize(10).fillColor("#666")

@@ -82,7 +82,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         <div className="border border-base-200 rounded-box p-4 bg-base-100">
           <h3 className="text-base font-semibold mb-1">Geburtstage &amp; Jubiläen</h3>
           <p className="text-base text-base-content/60 mb-3">
-            Runde Geburtstage (ab 70, alle 5&nbsp;J.) und Mitgliedsjubiläen (ab 10, alle 5&nbsp;J.)
+            Runde Geburtstage (ab 80, alle 5&nbsp;J.) und Mitgliedsjubiläen (ab 10, alle 5&nbsp;J.)
           </p>
           <form method="GET" action="/api/reports/geburtstage/pdf" target="_blank" className="flex gap-2 items-center">
             <input

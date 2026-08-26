@@ -196,7 +196,7 @@ export default async function DashboardPage() {
           <div className="card-body">
             <h2 className="card-title text-xl">Geburtstage &amp; Jubiläen</h2>
             <p className="text-base text-base-content/60 mb-2">
-              Runde Geburtstage (ab 70, alle 5&nbsp;J.) und Mitgliedsjubiläen (ab 10, alle 5&nbsp;J.)
+              Runde Geburtstage (ab 80, alle 5&nbsp;J.) und Mitgliedsjubiläen (ab 10, alle 5&nbsp;J.)
             </p>
             <form method="GET" action="/api/reports/geburtstage/pdf" target="_blank" className="flex gap-2 items-center mt-auto">
               <input
