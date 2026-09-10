@@ -1,8 +1,9 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { members, transactions, fiscalYears } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { members, transactions, fiscalYears, travels } from "@/lib/db/schema";
+import { and, asc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { calculateAge } from "@/lib/utils/calculations";
+import { getSettings } from "@/lib/utils/settings";
 import DashboardCharts from "@/modules/reports/components/DashboardCharts";
 import Link from "next/link";
 
@@ -11,6 +12,21 @@ const MONTH_NAMES = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt
 function eur(v: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v);
 }
+
+function fmtDate(d: string | null) {
+  if (!d) return "–";
+  return new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+const TRAVEL_STATUS_LABELS: Record<string, string> = {
+  planning: "Planung",
+  confirmed: "Bestätigt",
+};
+
+const TRAVEL_STATUS_BADGE: Record<string, string> = {
+  planning: "badge-ghost",
+  confirmed: "badge-success",
+};
 
 type ActiveMember = { lastName: string; firstName: string; birthDate: string | null; feePaidCurrentYear: boolean };
 
@@ -74,6 +90,8 @@ function upcomingBirthdays(activeMembers: ActiveMember[], days = 30) {
 export default async function DashboardPage() {
   const session = await requireAuth();
   const role = (session.user as { role?: string }).role ?? "member";
+  const settings = await getSettings();
+  const showTravel = role !== "member" && settings.features.travel;
 
   const [allActive, activeFYRows] = await Promise.all([
     db.select({
@@ -128,6 +146,30 @@ export default async function DashboardPage() {
     });
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+  const upcomingTravels = showTravel
+    ? await db
+        .select({
+          id: travels.id,
+          name: travels.name,
+          destination: travels.destination,
+          dateFrom: travels.dateFrom,
+          dateTo: travels.dateTo,
+          status: travels.status,
+          maxParticipants: travels.maxParticipants,
+          participantCount: sql<number>`(SELECT COUNT(*) FROM travel_participants tp WHERE tp.travel_id = travels.id)`,
+        })
+        .from(travels)
+        .where(
+          and(
+            inArray(travels.status, ["planning", "confirmed"]),
+            or(isNull(travels.dateFrom), gte(travels.dateFrom, today)),
+          ),
+        )
+        .orderBy(asc(sql`${travels.dateFrom} NULLS LAST`), asc(travels.name))
+        .limit(5)
+    : [];
+
   return (
     <div>
       <h1 className="text-xl font-bold mb-6">Übersicht</h1>
@@ -175,6 +217,49 @@ export default async function DashboardPage() {
         upcomingBirthdays={upcoming}
         fiscalYearLabel={fy?.label ?? ""}
       />
+
+      {/* Anstehende Reisen */}
+      {showTravel && (
+        <div className="card bg-base-100 shadow mt-6">
+          <div className="card-body">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="card-title text-xl">Anstehende Reisen</h2>
+              <Link href="/travel" className="btn btn-ghost btn-sm text-base">Alle Reisen</Link>
+            </div>
+
+            {upcomingTravels.length === 0 ? (
+              <p className="text-base text-base-content/60 mt-2">
+                Keine anstehenden Reisen geplant.
+              </p>
+            ) : (
+              <ul className="divide-y divide-base-200 mt-2">
+                {upcomingTravels.map((t) => (
+                  <li key={t.id} className="py-3">
+                    <Link href={`/travel/${t.id}`} className="flex flex-wrap items-center justify-between gap-2 hover:opacity-70">
+                      <div>
+                        <span className="text-base font-medium">{t.name}</span>
+                        {t.destination && (
+                          <span className="text-base text-base-content/50"> · {t.destination}</span>
+                        )}
+                        <span className={`badge badge-sm text-base ml-2 ${TRAVEL_STATUS_BADGE[t.status] ?? "badge-ghost"}`}>
+                          {TRAVEL_STATUS_LABELS[t.status] ?? t.status}
+                        </span>
+                      </div>
+                      <div className="text-base text-base-content/60">
+                        {t.dateFrom ? fmtDate(t.dateFrom) : "Termin offen"}
+                        {t.dateTo && t.dateTo !== t.dateFrom ? ` – ${fmtDate(t.dateTo)}` : ""}
+                        {" · "}
+                        {t.participantCount}
+                        {t.maxParticipants ? `/${t.maxParticipants}` : ""} Teiln.
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Schnellzugriff + PDF-Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
