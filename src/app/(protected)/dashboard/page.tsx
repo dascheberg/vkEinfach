@@ -166,7 +166,7 @@ export default async function DashboardPage() {
             or(isNull(travels.dateFrom), gte(travels.dateFrom, today)),
           ),
         )
-        .orderBy(asc(sql`${travels.dateFrom} NULLS LAST`), asc(travels.name))
+        .orderBy(sql`${travels.dateFrom} ASC NULLS LAST`, asc(travels.name))
         .limit(5)
     : [];
 
