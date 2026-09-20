@@ -45,8 +45,8 @@ export const accountsSeniorenclub: InternalAccountTemplate[] = [
 
   // Veranstaltungen (Einnahmen/Ausgaben gemischt je nach Buchung)
   { number: 130, name: "Essen Februar", accountKind: "neutral" },
-  { number: 140, name: "Aufwand/Gewinn/Verlust Ausfahrt 1", accountKind: "neutral" },
-  { number: 150, name: "Aufwand/Gewinn/Verlust Ausfahrt 2", accountKind: "neutral" },
+  { number: 140, name: "Gewinn-/Verlust Ausfahrt 1", accountKind: "neutral" },
+  { number: 150, name: "Gewinn-/Verlust Ausfahrt 2", accountKind: "neutral" },
 
   // Reisen
   { number: 160, name: "Reise 1 - Eigenanteil", accountKind: "income" },
