@@ -1349,12 +1349,12 @@ Summe Einnahmen       2.790,00 €      Summe Ausgaben     1.045,00 €
 
 #### Regeln
 
-- accountKind = 'income': Einnahmen-Spalte zeigt SUM(direction='in'); NICHT in Ausgaben
-- accountKind = 'expense': Ausgaben-Spalte zeigt SUM(direction='out'); NICHT in Einnahmen
-- accountKind = 'neutral': Einnahmen wenn SUM(direction='in') > 0; Ausgaben wenn SUM(direction='out') > 0 — kann in BEIDEN Spalten erscheinen (z.B. Kassendifferenzen)
+- Saldo je Konto = SUM(direction='in') − SUM(direction='out'): positiv → Einnahmen-Spalte, negativ → Ausgaben-Spalte (Betrag positiv), 0 → nicht anzeigen
+- Gilt für accountKind income, expense und neutral (Rückeinnahmen auf Ausgabenkonten mindern die Ausgabe, z.B. Konto 240)
 - accountKind = 'transfer' oder 'cancel': NICHT anzeigen (in WHERE-Filter ausgeschlossen)
+- Bereinigte EÜR: ?excl=140,150 klammert interne Konten aus (Berechnung: src/lib/utils/euer.ts)
 - Konten mit 0€ in der jeweiligen Richtung nicht anzeigen (keine Nullzeilen)
-- Summe Einnahmen = income.totalIn + neutral.totalIn; Summe Ausgaben = expense.totalOut + neutral.totalOut
+- Summe Einnahmen/Ausgaben = Summe der Salden der jeweiligen Spalte
 - Überschuss = Summe Einnahmen − Summe Ausgaben (grün wenn ≥ 0, rot wenn negativ)
 - Konten nach Nummer aufsteigend sortieren
 - PDF-Button: Portrait-PDF mit Vereinsname + Geschäftsjahr + Erstellungsdatum + Unterschriftzeile

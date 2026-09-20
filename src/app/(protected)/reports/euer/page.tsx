@@ -4,7 +4,7 @@ import { transactions, internalAccounts, fiscalYears } from "@/lib/db/schema";
 import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { parseExcludedNumbers } from "@/lib/utils/euer";
+import { parseExcludedNumbers, splitBySaldo } from "@/lib/utils/euer";
 
 export const dynamic = "force-dynamic";
 
@@ -64,15 +64,8 @@ export default async function EuerPage({ searchParams }: { searchParams: SearchP
   const kept = rows.filter(r => !excluded.has(r.number));
   const removed = usedRows.filter(r => excluded.has(r.number));
 
-  // income: direction='in' only; expense: direction='out' only;
-  // neutral: direction='in' → Einnahmen, direction='out' → Ausgaben (kann in beiden erscheinen)
-  const incomeRows = kept
-    .filter(r => (r.accountKind === "income" || r.accountKind === "neutral") && parseFloat(r.totalIn) > 0)
-    .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalIn) }));
-
-  const expenseRows = kept
-    .filter(r => (r.accountKind === "expense" || r.accountKind === "neutral") && parseFloat(r.totalOut) > 0)
-    .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalOut) }));
+  // Saldo je Konto (Einnahmen − Ausgaben): positiv → Einnahmen, negativ → Ausgaben
+  const { incomeRows, expenseRows } = splitBySaldo(kept);
 
   const totalIncome  = incomeRows.reduce((s, r) => s + r.total, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.total, 0);

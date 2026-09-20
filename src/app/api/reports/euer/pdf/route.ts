@@ -5,7 +5,7 @@ import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getSettings } from "@/lib/utils/settings";
-import { parseExcludedNumbers } from "@/lib/utils/euer";
+import { parseExcludedNumbers, splitBySaldo } from "@/lib/utils/euer";
 import PDFDocument from "pdfkit";
 
 export const dynamic = "force-dynamic";
@@ -60,12 +60,7 @@ export async function GET(req: NextRequest) {
   const excluded = parseExcludedNumbers(req.nextUrl.searchParams.getAll("excl")).sort((a, b) => a - b);
   const kept = rows.filter(r => !excluded.includes(r.number));
 
-  const incomeRows = kept
-    .filter(r => (r.accountKind === "income" || r.accountKind === "neutral") && parseFloat(r.totalIn) > 0)
-    .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalIn) }));
-  const expenseRows = kept
-    .filter(r => (r.accountKind === "expense" || r.accountKind === "neutral") && parseFloat(r.totalOut) > 0)
-    .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalOut) }));
+  const { incomeRows, expenseRows } = splitBySaldo(kept);
   const totalIncome  = incomeRows.reduce((s, r) => s + r.total, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.total, 0);
   const surplus      = totalIncome - totalExpense;
