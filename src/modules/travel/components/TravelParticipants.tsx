@@ -22,6 +22,7 @@ interface Props {
   travelId: number;
   maxParticipants: number | null;
   ownContribution: string | null;
+  ledger: { label: string; saldo: number } | null;
   isAdmin: boolean;
 }
 
@@ -30,7 +31,7 @@ function fmtEur(v: string | null) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(parseFloat(v));
 }
 
-export default function TravelParticipants({ travelId, maxParticipants, ownContribution, isAdmin }: Props) {
+export default function TravelParticipants({ travelId, maxParticipants, ownContribution, ledger, isAdmin }: Props) {
   const router = useRouter();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +86,7 @@ export default function TravelParticipants({ travelId, maxParticipants, ownContr
   const registered = participants.filter((p) => p.isRegistered);
   const paid = participants.filter((p) => p.isPaid);
   const totalIncome = paid.length * (ownContribution ? parseFloat(ownContribution) : 0);
+  const diff = ledger ? Math.round((totalIncome - ledger.saldo) * 100) / 100 : 0;
   const registeredIds = new Set(
     participants.map((p) => (p.memberId ? `member-${p.memberId}` : `guest-${p.guestId}`))
   );
@@ -97,6 +99,27 @@ export default function TravelParticipants({ travelId, maxParticipants, ownContr
           <button className="btn btn-ghost btn-xs" onClick={() => setError("")}>✕</button>
         </div>
       )}
+
+      {/* Abgleich mit internem Konto */}
+      {!loading && (ledger ? (
+        diff === 0 ? (
+          <div className="alert alert-success mb-4 text-base">
+            <span>Konto {ledger.label}: Saldo {fmtEur(ledger.saldo.toFixed(2))} stimmt mit den Einnahmen der bezahlten Teilnehmer überein.</span>
+          </div>
+        ) : (
+          <div className="alert alert-warning mb-4 text-base">
+            <span>
+              Abweichung zum Konto {ledger.label}: Teilnehmer bezahlt {fmtEur(totalIncome.toFixed(2))},
+              Kontosaldo {fmtEur(ledger.saldo.toFixed(2))} — Differenz {fmtEur(diff.toFixed(2))}.
+              {diff > 0 ? " Es fehlen Buchungen auf dem Konto oder Teilnehmer sind zu Unrecht als bezahlt markiert." : " Auf dem Konto sind mehr Einnahmen gebucht, als Teilnehmer als bezahlt markiert sind."}
+            </span>
+          </div>
+        )
+      ) : (
+        <div className="alert alert-info mb-4 text-base">
+          <span>Kein internes Konto hinterlegt — der Abgleich der Einnahmen mit der Buchhaltung ist nicht möglich.</span>
+        </div>
+      ))}
 
       {/* Kennzahlen */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

@@ -1,8 +1,8 @@
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { travels } from "@/lib/db/schema";
+import { travels, internalAccounts, transactions } from "@/lib/db/schema";
 import { redirect, notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import TravelParticipants from "@/modules/travel/components/TravelParticipants";
 
@@ -41,6 +41,22 @@ export default async function TravelDetailPage({
   const { id } = await params;
   const [travel] = await db.select().from(travels).where(eq(travels.id, parseInt(id)));
   if (!travel) notFound();
+
+  // Internes Konto der Reise: Saldo (Einnahmen − Ausgaben) im Buchungsjahr der Reise
+  let ledger: { label: string; saldo: number } | null = null;
+  if (travel.internalAccountId) {
+    const [acc] = await db.select().from(internalAccounts).where(eq(internalAccounts.id, travel.internalAccountId));
+    if (acc) {
+      const [row] = await db
+        .select({ saldo: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.direction}='in' THEN ${transactions.amount}::numeric ELSE -${transactions.amount}::numeric END),0)` })
+        .from(transactions)
+        .where(and(
+          eq(transactions.internalAccountId, acc.id),
+          travel.fiscalYearId ? eq(transactions.fiscalYearId, travel.fiscalYearId) : undefined,
+        ));
+      ledger = { label: `${acc.number} – ${acc.name}`, saldo: parseFloat(row?.saldo ?? "0") };
+    }
+  }
 
   const isAdmin = role === "admin";
   const dateRange = travel.dateFrom
@@ -100,6 +116,7 @@ export default async function TravelDetailPage({
         travelId={travel.id}
         maxParticipants={travel.maxParticipants}
         ownContribution={travel.ownContribution}
+        ledger={ledger}
         isAdmin={isAdmin}
       />
     </div>

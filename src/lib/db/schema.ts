@@ -143,6 +143,8 @@ export const travels = pgTable("travels", {
   maxParticipants: integer("max_participants"),
   description:     text("description"),
   fiscalYearId:    integer("fiscal_year_id").references(() => fiscalYears.id),
+  // Internes Konto, auf dem der Eigenanteil dieser Reise/Veranstaltung gebucht wird
+  internalAccountId: integer("internal_account_id").references(() => internalAccounts.id),
   // status: 'planning' | 'confirmed' | 'completed' | 'cancelled'
   status:          varchar("status", { length: 20 }).default("planning").notNull(),
   notes:           text("notes"),

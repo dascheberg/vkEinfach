@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface FiscalYear { id: number; label: string; isActive: boolean; }
+interface InternalAccount { id: number; number: number; name: string; }
 
 interface TravelData {
   name: string;
@@ -16,6 +17,7 @@ interface TravelData {
   maxParticipants: string;
   description: string;
   fiscalYearId: string;
+  internalAccountId: string;
   status: string;
   notes: string;
 }
@@ -25,6 +27,7 @@ interface Props {
   travelId?: number;
   initial?: Partial<TravelData>;
   fiscalYears: FiscalYear[];
+  internalAccounts: InternalAccount[];
 }
 
 const STATUS_OPTIONS = [
@@ -34,7 +37,7 @@ const STATUS_OPTIONS = [
   { value: "cancelled",  label: "Abgesagt" },
 ];
 
-export default function TravelForm({ mode, travelId, initial, fiscalYears }: Props) {
+export default function TravelForm({ mode, travelId, initial, fiscalYears, internalAccounts }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +55,7 @@ export default function TravelForm({ mode, travelId, initial, fiscalYears }: Pro
     maxParticipants: initial?.maxParticipants ?? "",
     description: initial?.description ?? "",
     fiscalYearId: initial?.fiscalYearId ?? String(activeFy?.id ?? ""),
+    internalAccountId: initial?.internalAccountId ?? "",
     status: initial?.status ?? "planning",
     notes: initial?.notes ?? "",
   });
@@ -78,6 +82,7 @@ export default function TravelForm({ mode, travelId, initial, fiscalYears }: Pro
         totalCost: form.totalCost || null,
         ownContribution: form.ownContribution || null,
         fiscalYearId: form.fiscalYearId || null,
+        internalAccountId: form.internalAccountId || null,
       }),
     });
     const data = await res.json();
@@ -160,6 +165,22 @@ export default function TravelForm({ mode, travelId, initial, fiscalYears }: Pro
               <input type="number" step="0.01" min="0" className="input input-bordered text-base"
                 value={form.totalCost} onChange={(e) => set("totalCost", e.target.value)} />
             </div>
+          </div>
+
+          <div className="form-control mb-3">
+            <label className="label"><span className="label-text text-base">Internes Konto (Eigenanteil)</span></label>
+            <select className="select select-bordered text-base" value={form.internalAccountId}
+              onChange={(e) => set("internalAccountId", e.target.value)}>
+              <option value="">– keines –</option>
+              {internalAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.number} – {a.name}</option>
+              ))}
+            </select>
+            <label className="label">
+              <span className="label-text-alt text-base">
+                Auf diesem Konto werden die Eigenanteile gebucht. Die Reiseseite vergleicht den Kontosaldo mit den als bezahlt markierten Teilnehmern.
+              </span>
+            </label>
           </div>
         </div>
       </div>

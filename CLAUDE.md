@@ -2034,6 +2034,9 @@ Alle ALTER TABLE-Befehle sind idempotent (IF NOT EXISTS / IF EXISTS). Können je
 -- Beitragshöhe je Buchungsjahr (Feature 2, 2025-06)
 ALTER TABLE fiscal_years ADD COLUMN IF NOT EXISTS membership_fee numeric(10,2);
 
+-- Internes Konto je Reise/Event für den Eigenanteil (Abgleich auf /travel/[id])
+ALTER TABLE travels ADD COLUMN IF NOT EXISTS internal_account_id integer REFERENCES internal_accounts(id);
+
 -- Umfrage-Abstimmung: alle eingeloggten User dürfen abstimmen (Bug-Fix, 2025-06)
 ALTER TABLE survey_votes ALTER COLUMN member_id DROP NOT NULL;
 ALTER TABLE survey_votes ADD COLUMN IF NOT EXISTS user_id text;

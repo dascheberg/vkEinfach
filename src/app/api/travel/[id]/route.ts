@@ -50,6 +50,7 @@ export async function PUT(
       maxParticipants: body.maxParticipants ? parseInt(body.maxParticipants) : null,
       description: body.description?.trim() || null,
       fiscalYearId: body.fiscalYearId ? parseInt(body.fiscalYearId) : null,
+      internalAccountId: body.internalAccountId ? parseInt(body.internalAccountId) : null,
       status: body.status || "planning",
       notes: body.notes?.trim() || null,
       updatedAt: new Date(),
