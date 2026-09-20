@@ -4,10 +4,11 @@ import { transactions, internalAccounts, fiscalYears } from "@/lib/db/schema";
 import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { parseExcludedNumbers } from "@/lib/utils/euer";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ fyId?: string }>;
+type SearchParams = Promise<{ fyId?: string; excl?: string | string[] }>;
 
 function eur(v: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v);
@@ -57,19 +58,29 @@ export default async function EuerPage({ searchParams }: { searchParams: SearchP
     .groupBy(internalAccounts.id, internalAccounts.number, internalAccounts.name, internalAccounts.accountKind)
     .orderBy(asc(internalAccounts.number));
 
+  // Ausgeklammerte Konten (bereinigte EÜR) — z.B. Reisen 140–190
+  const excluded = new Set(parseExcludedNumbers(params.excl));
+  const usedRows = rows.filter(r => parseFloat(r.totalIn) > 0 || parseFloat(r.totalOut) > 0);
+  const kept = rows.filter(r => !excluded.has(r.number));
+  const removed = usedRows.filter(r => excluded.has(r.number));
+
   // income: direction='in' only; expense: direction='out' only;
   // neutral: direction='in' → Einnahmen, direction='out' → Ausgaben (kann in beiden erscheinen)
-  const incomeRows = rows
+  const incomeRows = kept
     .filter(r => (r.accountKind === "income" || r.accountKind === "neutral") && parseFloat(r.totalIn) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalIn) }));
 
-  const expenseRows = rows
+  const expenseRows = kept
     .filter(r => (r.accountKind === "expense" || r.accountKind === "neutral") && parseFloat(r.totalOut) > 0)
     .map(r => ({ number: r.number, name: r.name, total: parseFloat(r.totalOut) }));
 
   const totalIncome  = incomeRows.reduce((s, r) => s + r.total, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.total, 0);
   const surplus      = totalIncome - totalExpense;
+
+  const removedIn  = removed.reduce((s, r) => s + parseFloat(r.totalIn), 0);
+  const removedOut = removed.reduce((s, r) => s + parseFloat(r.totalOut), 0);
+  const excludedList = Array.from(excluded).sort((a, b) => a - b);
 
   const maxRows = Math.max(incomeRows.length, expenseRows.length);
 
@@ -90,15 +101,39 @@ export default async function EuerPage({ searchParams }: { searchParams: SearchP
             ))}
           </select>
         </label>
+        <details className="dropdown">
+          <summary className="btn btn-outline text-base">
+            Konten ausklammern{excluded.size > 0 ? ` (${excluded.size})` : ""}
+          </summary>
+          <div className="dropdown-content z-10 bg-base-100 shadow rounded-box p-4 w-96 max-h-96 overflow-y-auto">
+            {usedRows.map(r => (
+              <label key={r.number} className="flex items-center gap-2 py-1 cursor-pointer">
+                <input
+                  type="checkbox" name="excl" value={r.number}
+                  defaultChecked={excluded.has(r.number)}
+                  className="checkbox checkbox-sm"
+                />
+                <span className="font-mono text-base-content/50 w-10">{r.number}</span>
+                <span>{r.name}</span>
+              </label>
+            ))}
+          </div>
+        </details>
         <button type="submit" className="btn btn-primary text-base">Anzeigen</button>
         <a
-          href={`/api/reports/euer/pdf?fyId=${selectedFY.id}`}
+          href={`/api/reports/euer/pdf?fyId=${selectedFY.id}${excludedList.length ? `&excl=${excludedList.join(",")}` : ""}`}
           target="_blank" rel="noopener noreferrer"
           className="btn btn-outline text-base ml-auto"
         >
           PDF
         </a>
       </form>
+
+      {excludedList.length > 0 && (
+        <div className="alert alert-info mb-6 text-base">
+          Bereinigte EÜR — ohne Konten: {excludedList.join(", ")}
+        </div>
+      )}
 
       {maxRows === 0 ? (
         <p className="text-base text-base-content/60">Keine Buchungen auf Einnahmen- oder Ausgabenkonten im Jahr {selectedFY.label}.</p>
@@ -160,6 +195,30 @@ export default async function EuerPage({ searchParams }: { searchParams: SearchP
                 {eur(Math.abs(surplus))}
               </span>
             </div>
+
+            {removed.length > 0 && (
+              <div className="border-t border-base-300 p-6 text-base">
+                <h2 className="font-bold mb-2">Nicht enthalten (ausgeklammert)</h2>
+                <table className="table text-base w-full">
+                  <tbody>
+                    {removed.map(r => (
+                      <tr key={r.number} className="border-b border-base-200">
+                        <td className="font-mono text-base-content/50 w-12 pl-0">{r.number}</td>
+                        <td>{r.name}</td>
+                        <td className="text-right font-mono">{eur(parseFloat(r.totalIn))}</td>
+                        <td className="text-right font-mono">{eur(parseFloat(r.totalOut))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold">
+                      <td colSpan={2} className="pl-0">Ergebnis ausgeklammert (Einnahmen − Ausgaben)</td>
+                      <td colSpan={2} className="text-right font-mono">{eur(removedIn - removedOut)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
