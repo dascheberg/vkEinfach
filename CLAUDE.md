@@ -3,7 +3,7 @@
 ## Projektübersicht
 
 Vereinskasse für den **Seniorenclub Schmalfeld e.V.**
-Eigenständige Web-App unter `kasse.scschmalfeld.org` — verlinkt von scschmalfeld.org.
+Eigenständige Web-App unter `app.vkeinfach.de` — verlinkt von scschmalfeld.org.
 Ziel: Wiederverwendbar für beliebige Vereine (Vereinsname, Module konfigurierbar).
 
 | Eigenschaft         | Wert                            |
@@ -11,8 +11,8 @@ Ziel: Wiederverwendbar für beliebige Vereine (Vereinsname, Module konfigurierba
 | GitHub              | github.com/dascheberg/vkEinfach |
 | Lokales Verzeichnis | ~/dev/vkEinfach (WSL2)          |
 | Neon-DB             | neondb (Projekt: vkEinfach)     |
-| Vercel-Projekt      | vkeinfach                       |
-| Produktiv-URL       | kasse.scschmalfeld.org          |
+| Vercel-Projekt      | vk-einfach (Team daschebergs-projects) |
+| Produktiv-URL       | https://app.vkeinfach.de        |
 
 ## Tech-Stack
 
@@ -265,7 +265,6 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
 - Sammelbuchung /transactions/sammel (Massenbuchung für Beiträge + Veranstaltungen)
 - Phase 3 Rest: Dashboard-Kennzahlen, EÜR-Seite, Monatsbericht, Offene Posten, Kontenblatt
 - Phase 4: Reiseverwaltung + Umfragen (selbst gebaut)
-- Phase 5: CI/CD + Vercel-Deployment + Domain-Setup + SSL
 - Phase 6: Tests + Testdaten
 - Phase 7: PWA (next-pwa)
 - Phase 8: Dokumentation
@@ -1688,15 +1687,48 @@ ALTER TABLE travel_participants
 
 ---
 
-## Phase 5 — CI/CD + Vercel-Deployment + Domain + SSL
+## Phase 5 — Deployment (ERLEDIGT, laeuft produktiv)
 
-- GitHub Actions: automatischer Deploy auf Vercel bei Push auf main
-- Vercel-Projekt verbinden: vercel link
-- Produktiv-Domain: kasse.scschmalfeld.org (DNS-Eintrag bei Domain-Provider)
-- SSL: automatisch via Vercel (Let's Encrypt)
-- Umgebungsvariablen in Vercel-Dashboard eintragen (DATABASE_URL, BETTER_AUTH_SECRET usw.)
-- BETTER_AUTH_URL auf https://kasse.scschmalfeld.org setzen
-- Neon: Connection Pooling für Produktiv-Betrieb aktivieren
+Stand 2026-10-13: Die App laeuft unter https://app.vkeinfach.de.
+
+| Eigenschaft | Wert |
+|---|---|
+| Vercel-Projekt | vk-einfach (Team daschebergs-projects) |
+| Produktiv-URL | https://app.vkeinfach.de |
+| Deploy-Trigger | Vercels native Git-Integration — jeder Push auf main deployt automatisch nach Production |
+| GitHub Actions | nicht vorhanden und nicht noetig (kein .github/workflows) |
+| SSL | automatisch via Vercel |
+
+Gesetzte Environment Variables (Production):
+DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL,
+NEXT_PUBLIC_BETTER_AUTH_URL, SMTP_ENCRYPTION_KEY, CRON_SECRET
+
+### Redeploy anstossen
+
+Environment-Variablen werden beim Build eingebacken — nach dem Aendern einer
+Variable ist ein Redeploy noetig, sonst greift der neue Wert nicht.
+
+```bash
+# Letztes Production-Deployment neu bauen
+vercel redeploy <deployment-url>
+
+# Alternative: leerer Commit
+git commit --allow-empty -m "Redeploy" && git push
+```
+
+Im Dashboard: Projekt vk-einfach -> Deployments -> ... -> Redeploy
+
+### Registrierte Cron Jobs
+
+```bash
+vercel crons ls
+```
+
+| Pfad | Schedule | Zweck |
+|---|---|---|
+| /api/cron/members-exit | 0 3 * * * | Mitglieder mit erreichtem Austrittsdatum deaktivieren |
+
+Noch offen: Neon Connection Pooling fuer den Produktiv-Betrieb pruefen.
 
 ---
 
@@ -1892,7 +1924,7 @@ Wichtig: Beide Umgebungen testen!
 | Umgebung | URL | DB |
 | -------- | --- | -- |
 | Lokal | http://localhost:3000 | Neon (gleiche DB!) |
-| Produktiv | https://kasse.scschmalfeld.org | Neon (gleiche DB!) |
+| Produktiv | https://app.vkeinfach.de | Neon (gleiche DB!) |
 
 Da beide auf dieselbe Neon-DB zeigen: Testdaten die lokal angelegt werden
 sind auch produktiv sichtbar. Cleanup-Script nach dem Testen ausführen!
