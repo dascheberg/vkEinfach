@@ -4,6 +4,7 @@ import { members } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { isExitReached, resolveIsActive } from "@/lib/utils/memberStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
       joinedAt: body.joinedAt || null,
       leftAt: body.leftAt || null,
       deceased: body.deceased ?? false,
-      isActive: body.isActive ?? true,
+      isActive: resolveIsActive(body.leftAt, body.isActive ?? true),
       feePaidCurrentYear: body.feePaidCurrentYear ?? false,
       feeNotes: body.feeNotes || null,
       notes: body.notes || null,
@@ -70,9 +71,37 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const body = await req.json();
 
+  const current = await db.query.members.findFirst({
+    where: eq(members.id, parseInt(id)),
+  });
+  if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Austrittsdatum aus dem Patch, sonst der gespeicherte Wert
+  const effectiveLeftAt =
+    body.leftAt !== undefined ? body.leftAt : current.leftAt;
+
+  // Aktivieren trotz erreichtem Austrittsdatum ist nicht erlaubt —
+  // sonst würde der nächste Abgleich das Mitglied direkt wieder deaktivieren.
+  if (body.isActive === true && isExitReached(effectiveLeftAt)) {
+    return NextResponse.json(
+      {
+        error:
+          "Mitglied ist zum " +
+          String(effectiveLeftAt).slice(0, 10) +
+          " ausgetreten. Bitte zuerst das Austrittsdatum entfernen.",
+      },
+      { status: 409 },
+    );
+  }
+
+  const patch = { ...body, updatedAt: new Date() };
+  if (body.leftAt !== undefined) {
+    patch.isActive = resolveIsActive(effectiveLeftAt, body.isActive ?? current.isActive);
+  }
+
   const [member] = await db
     .update(members)
-    .set({ ...body, updatedAt: new Date() })
+    .set(patch)
     .where(eq(members.id, parseInt(id)))
     .returning();
 

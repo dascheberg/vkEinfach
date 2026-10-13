@@ -7,6 +7,7 @@ import Link from "next/link";
 import MemberSearch from "@/modules/members/components/MemberSearch";
 import ImportModal from "@/components/ui/ImportModal";
 import { redirect } from "next/navigation";
+import { syncExitedMembers } from "@/lib/utils/memberStatus.server";
 
 type SearchParams = Promise<{ search?: string; active?: string; feePaid?: string }>;
 
@@ -14,6 +15,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const session = await requireAuth();
   const role = (session.user as { role?: string }).role ?? "member";
   if (role === "member") redirect("/dashboard");
+
+  // Austritte, deren Datum erreicht ist, vor dem Laden der Liste abgleichen.
+  // Greift auch ohne Deployment (Vercel-Cron laeuft nur produktiv).
+  await syncExitedMembers();
 
   const params = await searchParams;
   const search = params.search ?? "";

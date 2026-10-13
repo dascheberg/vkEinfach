@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { isExitReached } from "@/lib/utils/memberStatus";
+import { formatDate } from "@/lib/utils/calculations";
 
 const FUNCTIONS = [
   { value: "M", label: "Mitglied (M)" },
@@ -68,8 +70,17 @@ export default function MemberForm({ mode, memberId, initial }: Props) {
     notes: initial?.notes ?? "",
   });
 
+  // Erreichtes Austrittsdatum erzwingt "inaktiv" — die Checkbox wird dann
+  // gesperrt. Ein zukünftiges Datum lässt sie bedienbar; der tägliche
+  // Abgleich deaktiviert das Mitglied zum Stichtag.
+  const exitReached = isExitReached(form.leftAt);
+
   function set(field: keyof FormData, value: string | boolean) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "leftAt" && isExitReached(next.leftAt)) next.isActive = false;
+      return next;
+    });
   }
 
   function toggleFunction(value: string, checked: boolean) {
@@ -231,7 +242,7 @@ export default function MemberForm({ mode, memberId, initial }: Props) {
               onChange={(e) => set("joinedAt", e.target.value)}
             />
           </Field>
-          <Field label="Ausgetreten am">
+          <Field label="Ausgetreten zum">
             <input
               type="date"
               className="input input-bordered text-base w-full"
@@ -240,12 +251,26 @@ export default function MemberForm({ mode, memberId, initial }: Props) {
             />
           </Field>
         </div>
+        {form.leftAt && (
+          <div className={`alert mt-4 ${exitReached ? "alert-warning" : "alert-info"}`}>
+            <span className="text-base">
+              {exitReached
+                ? `Ausgetreten zum ${formatDate(form.leftAt)} — das Mitglied ist inaktiv.`
+                : `Austritt zum ${formatDate(form.leftAt)} — das Mitglied bleibt bis dahin aktiv und wird dann automatisch deaktiviert.`}
+            </span>
+          </div>
+        )}
         <div className="flex flex-wrap gap-6 mt-4">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label
+            className={`flex items-center gap-2 ${
+              exitReached ? "opacity-40" : "cursor-pointer"
+            }`}
+          >
             <input
               type="checkbox"
               className="checkbox"
               checked={form.isActive}
+              disabled={exitReached}
               onChange={(e) => set("isActive", e.target.checked)}
             />
             <span className="text-base">Aktiv</span>

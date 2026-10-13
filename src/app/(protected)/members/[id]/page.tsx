@@ -50,7 +50,7 @@ export default async function MemberDetailPage({
 
       {isAdmin && (
         <div className="mb-6">
-          <MemberActions memberId={member.id} isActive={member.isActive} />
+          <MemberActions memberId={member.id} isActive={member.isActive} leftAt={member.leftAt} />
         </div>
       )}
 
@@ -109,7 +109,7 @@ export default async function MemberDetailPage({
             }
           />
           {member.leftAt && (
-            <InfoRow label="Ausgetreten am" value={formatDate(member.leftAt)} />
+            <InfoRow label="Ausgetreten zum" value={formatDate(member.leftAt)} />
           )}
         </InfoCard>
 

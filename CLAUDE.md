@@ -238,6 +238,24 @@ UPDATE "user" SET role = 'vorstand' WHERE role = 'board_2';
   - Abstimmung für alle eingeloggten User möglich, unabhängig von members-Datensatz
   - SQL: ALTER TABLE survey_votes ALTER COLUMN member_id DROP NOT NULL;
   -       ALTER TABLE survey_votes ADD COLUMN IF NOT EXISTS user_id text;
+- Mitgliedsaustritt zum Datum (Feld members.left_at, war bereits im Schema):
+  - Regel: left_at IS NOT NULL AND left_at <= heute  →  is_active = false
+  - Vergangenes/heutiges Datum wirkt sofort; zukuenftiges Datum (z.B. Kuendigung
+    zum 31.12.) laesst das Mitglied bis zum Stichtag aktiv
+  - Reine Logik in src/lib/utils/memberStatus.ts (isExitReached, resolveIsActive) —
+    ohne DB-Import, daher auch in Client-Komponenten nutzbar
+  - DB-Abgleich in src/lib/utils/memberStatus.server.ts (syncExitedMembers)
+  - Taeglicher Lauf: GET /api/cron/members-exit, geschuetzt via CRON_SECRET
+    (vercel.json: crons, 03:00 taeglich) — greift nur im Deployment
+  - Zusaetzlich Lazy-Sync beim Laden von /members, damit die Automatik auch
+    lokal ohne Cron greift (ein UPDATE, trifft im Regelfall 0 Zeilen)
+  - POST/PUT /api/members erzwingen is_active=false bei erreichtem Austritt
+  - PATCH /api/members/[id] lehnt Aktivieren mit 409 ab, solange ein erreichtes
+    Austrittsdatum gesetzt ist
+  - Austrittsdatum loeschen reaktiviert NICHT automatisch — manuelle
+    Deaktivierungen (z.B. verstorben) bleiben erhalten
+  - Formular: Checkbox "Aktiv" gesperrt bei erreichtem Austritt, Hinweis-Alert;
+    Label jetzt "Ausgetreten zum"
 
 ### Offen — Reihenfolge
 
@@ -2222,9 +2240,14 @@ BETTER_AUTH_SECRET=...
 BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
 SMTP_ENCRYPTION_KEY=32-Zeichen-zufaelliger-String-fuer-AES256
+CRON_SECRET=zufaelliger-String-fuer-/api/cron/members-exit
 
 SMTP_ENCRYPTION_KEY generieren:
   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+CRON_SECRET generieren (muss auch in den Vercel Environment Variables stehen,
+sonst laeuft der taegliche Austritts-Abgleich nicht):
+  node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 
 KEIN RESEND_API_KEY mehr — E-Mail läuft über SMTP aus der settings-Tabelle.
 Für Produktion (Vercel) zusätzlich:

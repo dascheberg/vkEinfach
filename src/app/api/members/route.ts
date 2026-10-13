@@ -4,6 +4,7 @@ import { members } from "@/lib/db/schema";
 import { eq, and, or, ilike, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { resolveIsActive } from "@/lib/utils/memberStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
       joinedAt: body.joinedAt || null,
       leftAt: body.leftAt || null,
       deceased: body.deceased ?? false,
-      isActive: body.isActive ?? true,
+      isActive: resolveIsActive(body.leftAt, body.isActive ?? true),
       feePaidCurrentYear: body.feePaidCurrentYear ?? false,
       feeNotes: body.feeNotes || null,
       notes: body.notes || null,
