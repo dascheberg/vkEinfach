@@ -172,9 +172,14 @@ export async function GET(req: NextRequest) {
       return drawTableHeader(doc, y);
     }
 
+    // Die Fusszeile muss INNERHALB des Satzspiegels liegen: pdfkit legt bei
+    // Text unterhalb von (Seitenhoehe - unterer Rand) automatisch eine neue
+    // Seite an — das erzeugt sonst nach jeder Seite eine Leerseite.
+    const FOOTER_Y = PAGE_H - MARGIN - 12;
+
     function drawPageFooter() {
       doc.font(FONT_R).fontSize(8).fillColor("#999")
-        .text(`Seite ${pageNum}`, MARGIN, PAGE_H - MARGIN + 6, { width: COL_W, align: "right", lineBreak: false });
+        .text(`Seite ${pageNum}`, MARGIN, FOOTER_Y, { width: COL_W, align: "right", lineBreak: false });
     }
 
     let y = drawPageHeader();
@@ -185,7 +190,7 @@ export async function GET(req: NextRequest) {
     }
 
     list.forEach((m, i) => {
-      if (y + ROW_H > PAGE_H - MARGIN - 20) {
+      if (y + ROW_H > FOOTER_Y - 6) {
         drawPageFooter();
         doc.addPage();
         pageNum++;
