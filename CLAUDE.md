@@ -1517,7 +1517,7 @@ Datum        Belegnr.    Beschreibung         Konto   Einnahme   Ausgabe
 
 - Kontostand am Monatsende = alle Buchungen von Jahresbeginn bis Monatsende
 - Buchungsliste kompakt (kein kumulierter Saldo hier)
-- PDF-Button: Portrait-PDF
+- PDF-Button: Landscape-PDF (Querformat — Hochformat war zu schmal), Tabellenkopf auf Folgeseiten wiederholt
 
 #### API-Route
 

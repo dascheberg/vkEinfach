@@ -9,10 +9,11 @@ import PDFDocument from "pdfkit";
 
 export const dynamic = "force-dynamic";
 
+// A4 landscape: 841.89 × 595.28 pt
 const MARGIN = 50;
-const PAGE_W = 595.28;
-const PAGE_H = 841.89;
-const COL_W  = PAGE_W - MARGIN * 2;
+const PAGE_W = 841.89;
+const PAGE_H = 595.28;
+const COL_W  = PAGE_W - MARGIN * 2;  // 741.89
 const FONT_B = "Helvetica-Bold";
 const FONT_R = "Helvetica";
 const ROW_H  = 14;
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
   const surplus      = totalIncome - totalExpense;
   const totalBalance = allExtAccounts.reduce((s, a) => s + (extBalances[a.id] ?? 0), 0);
 
-  const doc    = new PDFDocument({ size: "A4", layout: "portrait", margin: MARGIN, autoFirstPage: true });
+  const doc    = new PDFDocument({ size: "A4", layout: "landscape", margin: MARGIN, autoFirstPage: true });
   const chunks: Buffer[] = [];
 
   await new Promise<void>((resolve, reject) => {
@@ -160,24 +161,28 @@ export async function GET(req: NextRequest) {
 
     y += 6;
     // Transaction list
-    const C = { date: 60, bn: 80, desc: 285, kto: 40, income: 75, expense: 75 };
+    // Summe: 60+80+411+40+75+75 = 741
+    const C = { date: 60, bn: 80, desc: 411, kto: 40, income: 75, expense: 75 };
     doc.font(FONT_B).fontSize(10).fillColor("#000")
       .text(`Buchungen ${MONTH_NAMES[safeMonth - 1]} (${monthEntries.length})`, MARGIN, y); y += 12;
 
     // Table header
-    doc.save().fillColor("#1e3a5f").rect(MARGIN, y, COL_W, 14).fill().restore();
-    doc.font(FONT_B).fontSize(7.5).fillColor("#fff");
-    let x = MARGIN + 2;
-    doc.text("Datum",      x, y + 2, { width: C.date    - 2, lineBreak: false }); x += C.date;
-    doc.text("Beleg-Nr.",  x, y + 2, { width: C.bn      - 2, lineBreak: false }); x += C.bn;
-    doc.text("Beschreibung",x, y + 2, { width: C.desc   - 2, lineBreak: false }); x += C.desc;
-    doc.text("Kto.",       x, y + 2, { width: C.kto     - 2, align: "right", lineBreak: false }); x += C.kto;
-    doc.text("Einnahme",   x, y + 2, { width: C.income  - 2, align: "right", lineBreak: false }); x += C.income;
-    doc.text("Ausgabe",    x, y + 2, { width: C.expense - 2, align: "right", lineBreak: false });
-    y += 14;
+    function drawTableHeader() {
+      doc.save().fillColor("#1e3a5f").rect(MARGIN, y, COL_W, 14).fill().restore();
+      doc.font(FONT_B).fontSize(7.5).fillColor("#fff");
+      let x = MARGIN + 2;
+      doc.text("Datum",      x, y + 2, { width: C.date    - 2, lineBreak: false }); x += C.date;
+      doc.text("Beleg-Nr.",  x, y + 2, { width: C.bn      - 2, lineBreak: false }); x += C.bn;
+      doc.text("Beschreibung",x, y + 2, { width: C.desc   - 2, lineBreak: false }); x += C.desc;
+      doc.text("Kto.",       x, y + 2, { width: C.kto     - 2, align: "right", lineBreak: false }); x += C.kto;
+      doc.text("Einnahme",   x, y + 2, { width: C.income  - 2, align: "right", lineBreak: false }); x += C.income;
+      doc.text("Ausgabe",    x, y + 2, { width: C.expense - 2, align: "right", lineBreak: false });
+      y += 14;
+    }
+    drawTableHeader();
 
     monthEntries.forEach((e, i) => {
-      checkPageBreak(ROW_H);
+      if (y + ROW_H > PAGE_H - MARGIN) { doc.addPage(); y = MARGIN; drawTableHeader(); }
       if (i % 2 === 0) doc.save().fillColor("#f8fafc").rect(MARGIN, y, COL_W, ROW_H).fill().restore();
       doc.font(FONT_R).fontSize(8).fillColor("#000");
       let cx = MARGIN + 2;
