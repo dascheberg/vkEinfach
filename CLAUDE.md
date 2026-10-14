@@ -1490,7 +1490,10 @@ Zusammenfassung eines einzelnen Monats.
 
 #### Layout
 
-Filter oben: Jahr (Dropdown) + Monat (Dropdown Jan–Dez)
+Filter oben: Buchungsjahr (Dropdown) + Von Monat (Dropdown Jan–Dez) + Bis Monat (Dropdown Jan–Dez)
+
+Zeitraum über mehrere Monate möglich (z.B. Juni bis September). Sind Von und Bis
+gleich, verhält sich die Seite wie der klassische Einzelmonats-Bericht.
 
 ```
 Monatsbericht Juni 2026  —  Seniorenclub Schmalfeld e.V.
@@ -1515,11 +1518,18 @@ Datum        Belegnr.    Beschreibung         Konto   Einnahme   Ausgabe
 
 #### Regeln
 
-- Kontostand am Monatsende = alle Buchungen von Jahresbeginn bis Monatsende
+- Monatsbereich: Parameter month (von) + monthEnd (bis). monthEnd fehlt → Einzelmonat
+- Bis-Monat vor Von-Monat wird stillschweigend getauscht (kein Fehler)
+- Kontostand am Periodenende = alle Buchungen von Jahresbeginn bis Ende des Bis-Monats
+- Monatsübersicht (Monat | Buchungen | Einnahmen | Ausgaben | Saldo) erscheint nur,
+  wenn der Zeitraum mehr als einen Monat umfasst
 - Buchungsliste kompakt (kein kumulierter Saldo hier)
 - PDF-Button: Landscape-PDF (Querformat — Hochformat war zu schmal), Tabellenkopf auf Folgeseiten wiederholt
+- PDF-Dateiname: Monatsbericht-2026-06.pdf bzw. Monatsbericht-2026-06-bis-09.pdf
 
 #### API-Route
+
+GET /api/reports/monthly/pdf?fyId=X&month=6&monthEnd=9 — Landscape-PDF für den Zeitraum
 
 GET /api/reports/monthly?year=2026&month=6 — gibt zurück:
 ```ts

@@ -41,10 +41,16 @@ export async function GET(req: NextRequest) {
   const role = (session.user as { role?: string })?.role ?? "member";
   if (role === "member") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const sp       = req.nextUrl.searchParams;
-  const fyId     = sp.get("fyId");
-  const month    = parseInt(sp.get("month") ?? String(new Date().getMonth() + 1));
-  const safeMonth = Math.min(Math.max(month, 1), 12);
+  const sp    = req.nextUrl.searchParams;
+  const fyId  = sp.get("fyId");
+  const clamp = (n: number) => Math.min(Math.max(n, 1), 12);
+
+  const rawFrom = parseInt(sp.get("month") ?? String(new Date().getMonth() + 1));
+  const rawTo   = sp.get("monthEnd") ? parseInt(sp.get("monthEnd")!) : rawFrom;
+  // Vertauschte Eingabe (Bis vor Von) wird stillschweigend getauscht
+  const monthFromNo = clamp(Math.min(rawFrom || 1, rawTo || 1));
+  const monthToNo   = clamp(Math.max(rawFrom || 1, rawTo || 1));
+  const isRange     = monthFromNo !== monthToNo;
 
   if (!fyId) return NextResponse.json({ error: "fyId fehlt" }, { status: 400 });
 
@@ -56,9 +62,13 @@ export async function GET(req: NextRequest) {
   if (!fy) return NextResponse.json({ error: "Buchungsjahr nicht gefunden" }, { status: 404 });
 
   const fyYear    = parseInt(fy.label) || new Date().getFullYear();
-  const monthFrom = `${fyYear}-${String(safeMonth).padStart(2, "0")}-01`;
-  const lastDay   = new Date(fyYear, safeMonth, 0).getDate();
-  const monthTo   = `${fyYear}-${String(safeMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const rangeFrom = `${fyYear}-${String(monthFromNo).padStart(2, "0")}-01`;
+  const lastDay   = new Date(fyYear, monthToNo, 0).getDate();
+  const rangeTo   = `${fyYear}-${String(monthToNo).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const periodLabel = isRange
+    ? `${MONTH_NAMES[monthFromNo - 1]} – ${MONTH_NAMES[monthToNo - 1]}`
+    : MONTH_NAMES[monthFromNo - 1];
 
   const [monthEntries, allExtAccounts, extBalanceRows] = await Promise.all([
     db.select({
@@ -74,8 +84,8 @@ export async function GET(req: NextRequest) {
     .leftJoin(internalAccounts, eq(transactions.internalAccountId, internalAccounts.id))
     .where(and(
       eq(transactions.fiscalYearId, fy.id),
-      gte(transactions.bookingDate, monthFrom),
-      lte(transactions.bookingDate, monthTo),
+      gte(transactions.bookingDate, rangeFrom),
+      lte(transactions.bookingDate, rangeTo),
     ))
     .orderBy(asc(transactions.bookingDate), asc(transactions.receiptNumber)),
 
@@ -89,7 +99,7 @@ export async function GET(req: NextRequest) {
       net: sql<string>`COALESCE(SUM(CASE WHEN direction='in' THEN amount::numeric ELSE -amount::numeric END),0)`,
     })
     .from(transactions)
-    .where(and(eq(transactions.fiscalYearId, fy.id), lte(transactions.bookingDate, monthTo)))
+    .where(and(eq(transactions.fiscalYearId, fy.id), lte(transactions.bookingDate, rangeTo)))
     .groupBy(transactions.externalAccountId),
   ]);
 
@@ -100,6 +110,17 @@ export async function GET(req: NextRequest) {
   const totalExpense = monthEntries.filter(e => e.direction === "out").reduce((s, e) => s + parseFloat(e.amount), 0);
   const surplus      = totalIncome - totalExpense;
   const totalBalance = allExtAccounts.reduce((s, a) => s + (extBalances[a.id] ?? 0), 0);
+
+  // Monatsweise Aufschlüsselung — nur sinnvoll bei mehr als einem Monat
+  const monthlyBreakdown = isRange
+    ? Array.from({ length: monthToNo - monthFromNo + 1 }, (_, i) => {
+        const m    = monthFromNo + i;
+        const rows = monthEntries.filter(e => parseInt(e.bookingDate.slice(5, 7)) === m);
+        const inc  = rows.filter(e => e.direction === "in" ).reduce((s, e) => s + parseFloat(e.amount), 0);
+        const exp  = rows.filter(e => e.direction === "out").reduce((s, e) => s + parseFloat(e.amount), 0);
+        return { name: MONTH_NAMES[m - 1], count: rows.length, income: inc, expense: exp, surplus: inc - exp };
+      })
+    : [];
 
   const doc    = new PDFDocument({ size: "A4", layout: "landscape", margin: MARGIN, autoFirstPage: true });
   const chunks: Buffer[] = [];
@@ -122,7 +143,7 @@ export async function GET(req: NextRequest) {
       doc.font(FONT_R).fontSize(10).fillColor("#555").text(appSettings.clubSubtitle, MARGIN, y); y += 18;
     }
     doc.font(FONT_B).fontSize(14).fillColor("#000")
-      .text(`Monatsbericht ${MONTH_NAMES[safeMonth - 1]} ${fyYear}`, MARGIN, y); y += 18;
+      .text(`Monatsbericht ${periodLabel} ${fyYear}`, MARGIN, y); y += 18;
     doc.font(FONT_R).fontSize(9).fillColor("#666").text(`Erstellt: ${today}`, MARGIN, y); y += 14;
     doc.save().strokeColor("#000").lineWidth(1).moveTo(MARGIN, y).lineTo(MARGIN + COL_W, y).stroke().restore(); y += 12;
 
@@ -139,9 +160,55 @@ export async function GET(req: NextRequest) {
     }
     y += 42;
 
+    // Monatsübersicht (nur bei Zeitraum über mehrere Monate)
+    if (monthlyBreakdown.length > 0) {
+      doc.font(FONT_B).fontSize(10).fillColor("#000").text("Monatsübersicht", MARGIN, y); y += 14;
+
+      const M = { name: 120, count: 80, income: 110, expense: 110, surplus: 110 };
+      const mTotalW = M.name + M.count + M.income + M.expense + M.surplus;
+
+      doc.save().fillColor("#1e3a5f").rect(MARGIN, y, mTotalW, 14).fill().restore();
+      doc.font(FONT_B).fontSize(7.5).fillColor("#fff");
+      let mx = MARGIN + 2;
+      doc.text("Monat",     mx, y + 2, { width: M.name    - 2, lineBreak: false }); mx += M.name;
+      doc.text("Buchungen", mx, y + 2, { width: M.count   - 2, align: "right", lineBreak: false }); mx += M.count;
+      doc.text("Einnahmen", mx, y + 2, { width: M.income  - 2, align: "right", lineBreak: false }); mx += M.income;
+      doc.text("Ausgaben",  mx, y + 2, { width: M.expense - 2, align: "right", lineBreak: false }); mx += M.expense;
+      doc.text("Saldo",     mx, y + 2, { width: M.surplus - 2, align: "right", lineBreak: false });
+      y += 14;
+
+      monthlyBreakdown.forEach((m, i) => {
+        checkPageBreak(ROW_H);
+        if (i % 2 === 0) doc.save().fillColor("#f8fafc").rect(MARGIN, y, mTotalW, ROW_H).fill().restore();
+        doc.font(FONT_R).fontSize(8).fillColor("#000");
+        let cx = MARGIN + 2;
+        doc.text(m.name,          cx, y + 2, { width: M.name    - 2, lineBreak: false }); cx += M.name;
+        doc.text(String(m.count), cx, y + 2, { width: M.count   - 2, align: "right", lineBreak: false }); cx += M.count;
+        doc.fillColor("#166534").text(eur(m.income),  cx, y + 2, { width: M.income  - 2, align: "right", lineBreak: false }); cx += M.income;
+        doc.fillColor("#991b1b").text(eur(m.expense), cx, y + 2, { width: M.expense - 2, align: "right", lineBreak: false }); cx += M.expense;
+        doc.fillColor(m.surplus < 0 ? "#991b1b" : "#166534")
+          .text(eur(m.surplus), cx, y + 2, { width: M.surplus - 2, align: "right", lineBreak: false });
+        drawLine(doc, y + ROW_H);
+        y += ROW_H;
+      });
+
+      checkPageBreak(18);
+      doc.save().fillColor("#e2e8f0").rect(MARGIN, y, mTotalW, 16).fill().restore();
+      doc.font(FONT_B).fontSize(9).fillColor("#000");
+      let gx = MARGIN + 2;
+      doc.text("Gesamt",                      gx, y + 3, { width: M.name  - 2, lineBreak: false }); gx += M.name;
+      doc.text(String(monthEntries.length),   gx, y + 3, { width: M.count - 2, align: "right", lineBreak: false }); gx += M.count;
+      doc.fillColor("#166534").text(eur(totalIncome),  gx, y + 3, { width: M.income  - 2, align: "right", lineBreak: false }); gx += M.income;
+      doc.fillColor("#991b1b").text(eur(totalExpense), gx, y + 3, { width: M.expense - 2, align: "right", lineBreak: false }); gx += M.expense;
+      doc.fillColor(surplus < 0 ? "#991b1b" : "#166534")
+        .text(eur(surplus), gx, y + 3, { width: M.surplus - 2, align: "right", lineBreak: false });
+      y += 24;
+    }
+
     // External account balances
     if (allExtAccounts.length > 0) {
-      doc.font(FONT_B).fontSize(10).fillColor("#000").text(`Kontostand je Kasse am ${fmtDate(monthTo)}`, MARGIN, y); y += 14;
+      checkPageBreak(ROW_H * 2);
+      doc.font(FONT_B).fontSize(10).fillColor("#000").text(`Kontostand je Kasse am ${fmtDate(rangeTo)}`, MARGIN, y); y += 14;
       allExtAccounts.forEach((a, i) => {
         checkPageBreak(ROW_H);
         const bal = extBalances[a.id] ?? 0;
@@ -161,10 +228,11 @@ export async function GET(req: NextRequest) {
 
     y += 6;
     // Transaction list
+    checkPageBreak(ROW_H * 3);
     // Summe: 60+80+411+40+75+75 = 741
     const C = { date: 60, bn: 80, desc: 411, kto: 40, income: 75, expense: 75 };
     doc.font(FONT_B).fontSize(10).fillColor("#000")
-      .text(`Buchungen ${MONTH_NAMES[safeMonth - 1]} (${monthEntries.length})`, MARGIN, y); y += 12;
+      .text(`Buchungen ${periodLabel} (${monthEntries.length})`, MARGIN, y); y += 12;
 
     // Table header
     function drawTableHeader() {
@@ -211,7 +279,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(Buffer.concat(chunks), {
     headers: {
       "Content-Type":        "application/pdf",
-      "Content-Disposition": `inline; filename="Monatsbericht-${fyYear}-${String(safeMonth).padStart(2, "0")}.pdf"`,
+      "Content-Disposition": `inline; filename="Monatsbericht-${fyYear}-${String(monthFromNo).padStart(2, "0")}${isRange ? `-bis-${String(monthToNo).padStart(2, "0")}` : ""}.pdf"`,
     },
   });
 }

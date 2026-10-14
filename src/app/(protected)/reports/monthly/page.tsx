@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ fyId?: string; month?: string }>;
+type SearchParams = Promise<{ fyId?: string; month?: string; monthEnd?: string }>;
 
 const MONTH_NAMES = [
   "Januar","Februar","März","April","Mai","Juni",
@@ -37,21 +37,31 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
     ? fiscalYearList.find(fy => fy.id === parseInt(params.fyId!))
     : defaultFY;
 
-  const now          = new Date();
-  const selectedMonth = params.month ? parseInt(params.month) : (now.getMonth() + 1);
-  const safeMonth    = Math.min(Math.max(selectedMonth, 1), 12);
+  const now = new Date();
+  const clamp = (n: number) => Math.min(Math.max(n, 1), 12);
+
+  const rawFrom = params.month    ? parseInt(params.month)    : (now.getMonth() + 1);
+  const rawTo   = params.monthEnd ? parseInt(params.monthEnd) : rawFrom;
+  // Vertauschte Eingabe (Bis vor Von) wird stillschweigend getauscht
+  const monthFromNo = clamp(Math.min(rawFrom || 1, rawTo || 1));
+  const monthToNo   = clamp(Math.max(rawFrom || 1, rawTo || 1));
+  const isRange     = monthFromNo !== monthToNo;
 
   const fyYear = selectedFY
     ? parseInt(selectedFY.label) || now.getFullYear()
     : now.getFullYear();
 
-  const monthFrom = `${fyYear}-${String(safeMonth).padStart(2, "0")}-01`;
-  const lastDay   = new Date(fyYear, safeMonth, 0).getDate();
-  const monthTo   = `${fyYear}-${String(safeMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const rangeFrom = `${fyYear}-${String(monthFromNo).padStart(2, "0")}-01`;
+  const lastDay   = new Date(fyYear, monthToNo, 0).getDate();
+  const rangeTo   = `${fyYear}-${String(monthToNo).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const periodLabel = isRange
+    ? `${MONTH_NAMES[monthFromNo - 1]} – ${MONTH_NAMES[monthToNo - 1]}`
+    : MONTH_NAMES[monthFromNo - 1];
 
   const [monthEntries, allExtAccounts, extBalanceRows] = selectedFY
     ? await Promise.all([
-        // Transactions in the selected month
+        // Transactions in the selected month range
         db.select({
           id:            transactions.id,
           bookingDate:   transactions.bookingDate,
@@ -65,8 +75,8 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
         .leftJoin(internalAccounts, eq(transactions.internalAccountId, internalAccounts.id))
         .where(and(
           eq(transactions.fiscalYearId, selectedFY.id),
-          gte(transactions.bookingDate, monthFrom),
-          lte(transactions.bookingDate, monthTo),
+          gte(transactions.bookingDate, rangeFrom),
+          lte(transactions.bookingDate, rangeTo),
         ))
         .orderBy(asc(transactions.bookingDate), asc(transactions.receiptNumber)),
 
@@ -76,7 +86,7 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
           .where(eq(externalAccounts.isActive, true))
           .orderBy(asc(externalAccounts.sortOrder)),
 
-        // Balance per external account from year start through end of month
+        // Balance per external account from year start through end of range
         db.select({
           externalAccountId: transactions.externalAccountId,
           net: sql<string>`COALESCE(SUM(CASE WHEN direction='in' THEN amount::numeric ELSE -amount::numeric END),0)`,
@@ -84,7 +94,7 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
         .from(transactions)
         .where(and(
           eq(transactions.fiscalYearId, selectedFY.id),
-          lte(transactions.bookingDate, monthTo),
+          lte(transactions.bookingDate, rangeTo),
         ))
         .groupBy(transactions.externalAccountId),
       ])
@@ -99,6 +109,21 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
   const totalExpense = monthEntries.filter(e => e.direction === "out").reduce((s, e) => s + parseFloat(e.amount), 0);
   const surplus      = totalIncome - totalExpense;
   const totalBalance = allExtAccounts.reduce((s, a) => s + (extBalances[a.id] ?? 0), 0);
+
+  // Monatsweise Aufschlüsselung — nur sinnvoll bei mehr als einem Monat
+  const monthlyBreakdown = isRange
+    ? Array.from({ length: monthToNo - monthFromNo + 1 }, (_, i) => {
+        const m   = monthFromNo + i;
+        const rows = monthEntries.filter(e => parseInt(e.bookingDate.slice(5, 7)) === m);
+        const inc = rows.filter(e => e.direction === "in" ).reduce((s, e) => s + parseFloat(e.amount), 0);
+        const exp = rows.filter(e => e.direction === "out").reduce((s, e) => s + parseFloat(e.amount), 0);
+        return { month: m, name: MONTH_NAMES[m - 1], count: rows.length, income: inc, expense: exp, surplus: inc - exp };
+      })
+    : [];
+
+  const pdfHref = selectedFY
+    ? `/api/reports/monthly/pdf?fyId=${selectedFY.id}&month=${monthFromNo}&monthEnd=${monthToNo}`
+    : "#";
 
   return (
     <div>
@@ -118,8 +143,16 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
           </select>
         </label>
         <label className="form-control">
-          <span className="label-text text-base mb-1">Monat</span>
-          <select name="month" defaultValue={String(safeMonth)} className="select select-bordered text-base">
+          <span className="label-text text-base mb-1">Von Monat</span>
+          <select name="month" defaultValue={String(monthFromNo)} className="select select-bordered text-base">
+            {MONTH_NAMES.map((name, i) => (
+              <option key={i + 1} value={String(i + 1)}>{name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="form-control">
+          <span className="label-text text-base mb-1">Bis Monat</span>
+          <select name="monthEnd" defaultValue={String(monthToNo)} className="select select-bordered text-base">
             {MONTH_NAMES.map((name, i) => (
               <option key={i + 1} value={String(i + 1)}>{name}</option>
             ))}
@@ -128,7 +161,7 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
         <button type="submit" className="btn btn-primary text-base">Anzeigen</button>
         {selectedFY && (
           <a
-            href={`/api/reports/monthly/pdf?fyId=${selectedFY.id}&month=${safeMonth}`}
+            href={pdfHref}
             target="_blank" rel="noopener noreferrer"
             className="btn btn-outline text-base ml-auto"
           >
@@ -142,7 +175,7 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
       ) : (
         <>
           <h2 className="text-xl font-semibold mb-4">
-            {MONTH_NAMES[safeMonth - 1]} {fyYear} — {selectedFY.label}
+            {periodLabel} {fyYear} — {selectedFY.label}
           </h2>
 
           {/* Summary */}
@@ -163,12 +196,56 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
             </div>
           </div>
 
-          {/* Kontostand per Monatsende */}
+          {/* Monatsweise Aufschlüsselung — nur bei Zeitraum über mehrere Monate */}
+          {monthlyBreakdown.length > 0 && (
+            <div className="card bg-base-100 shadow mb-6">
+              <div className="card-body">
+                <h3 className="text-base font-bold mb-3">Monatsübersicht</h3>
+                <table className="table text-base w-full">
+                  <thead>
+                    <tr className="text-base">
+                      <th>Monat</th>
+                      <th className="text-right">Buchungen</th>
+                      <th className="text-right">Einnahmen</th>
+                      <th className="text-right">Ausgaben</th>
+                      <th className="text-right">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyBreakdown.map(m => (
+                      <tr key={m.month} className="border-b border-base-200">
+                        <td>{m.name}</td>
+                        <td className="text-right font-mono">{m.count}</td>
+                        <td className="text-right font-mono text-success">{eur(m.income)}</td>
+                        <td className="text-right font-mono text-error">{eur(m.expense)}</td>
+                        <td className={`text-right font-mono ${m.surplus < 0 ? "text-error" : "text-success"}`}>
+                          {eur(m.surplus)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold border-t-2 border-base-300 text-base">
+                      <td>Gesamt</td>
+                      <td className="text-right font-mono">{monthEntries.length}</td>
+                      <td className="text-right font-mono text-success">{eur(totalIncome)}</td>
+                      <td className="text-right font-mono text-error">{eur(totalExpense)}</td>
+                      <td className={`text-right font-mono ${surplus < 0 ? "text-error" : "text-success"}`}>
+                        {eur(surplus)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Kontostand per Periodenende */}
           {allExtAccounts.length > 0 && (
             <div className="card bg-base-100 shadow mb-6">
               <div className="card-body">
                 <h3 className="text-base font-bold mb-3">
-                  Kontostand je Kasse am {fmtDate(monthTo)}
+                  Kontostand je Kasse am {fmtDate(rangeTo)}
                 </h3>
                 <table className="table text-base w-full">
                   <tbody>
@@ -198,10 +275,12 @@ export default async function MonthlyPage({ searchParams }: { searchParams: Sear
           <div className="card bg-base-100 shadow">
             <div className="card-body">
               <h3 className="text-base font-bold mb-3">
-                Buchungen {MONTH_NAMES[safeMonth - 1]} ({monthEntries.length})
+                Buchungen {periodLabel} ({monthEntries.length})
               </h3>
               {monthEntries.length === 0 ? (
-                <p className="text-base text-base-content/60">Keine Buchungen in diesem Monat.</p>
+                <p className="text-base text-base-content/60">
+                  {isRange ? "Keine Buchungen in diesem Zeitraum." : "Keine Buchungen in diesem Monat."}
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="table table-zebra text-base w-full">
