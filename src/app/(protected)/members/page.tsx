@@ -51,6 +51,16 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
   const isAdmin = role === "admin";
 
+  // Aktuelle Filter an die PDF-Route durchreichen, damit das PDF
+  // genau die sichtbare Liste zeigt.
+  const pdfQuery = new URLSearchParams();
+  if (search) pdfQuery.set("search", search);
+  if (showInactive) pdfQuery.set("active", "false");
+  if (feePaid !== "all") pdfQuery.set("feePaid", feePaid);
+  const pdfHref = `/api/reports/mitgliederliste/pdf${
+    pdfQuery.toString() ? `?${pdfQuery.toString()}` : ""
+  }`;
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -70,6 +80,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           </a>
           <a href="/api/members/export?type=geburtstag" className="btn btn-ghost text-base">
             Geburtstagsliste
+          </a>
+          <a
+            href={pdfHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline text-base"
+          >
+            Mitgliederliste PDF
           </a>
         </div>
       </div>
@@ -120,6 +138,22 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           </p>
           <a
             href="/api/reports/beitragsstand/pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline text-base w-full"
+          >
+            PDF öffnen
+          </a>
+        </div>
+
+        <div className="border border-base-200 rounded-box p-4 bg-base-100">
+          <h3 className="text-base font-semibold mb-1">Mitgliederliste</h3>
+          <p className="text-base text-base-content/60 mb-3">
+            Adressliste mit Telefon, Geburtstag und Funktion (Querformat) — nach
+            aktueller Filterung
+          </p>
+          <a
+            href={pdfHref}
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-outline text-base w-full"
